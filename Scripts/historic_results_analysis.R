@@ -1401,10 +1401,6 @@ df_fp_type %>%
        caption = "")
 
 
-
-
-Maternity status
-
 # Nutrition Women with Anemia ---------------------------------------------
 
 df_nut_anemia_pw <- read_sheet(as_sheets_id(gs_id), 
@@ -1422,6 +1418,8 @@ df_nut_anemia_pw <- read_sheet(as_sheets_id(gs_id),
                            str_detect(characteristic, "Maternity status") ~ "Maternity status",
                            .default = "Province"),
          characteristic = str_remove_all(characteristic, "Maternity status : "),
+         indicator = str_remove_all(indicator, "Women with "),
+         indicator = str_to_title(indicator),
          value = value / 100) %>% 
   separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
   mutate(year = as.numeric(year)) %>% 
@@ -1430,12 +1428,11 @@ df_nut_anemia_pw <- read_sheet(as_sheets_id(gs_id),
   relocate(group, .before = characteristic)
 
 
-
-# Mozambique National Trend
+# Mozambique National Trend - Bar
 df_nut_anemia_pw %>% 
   filter(country == "Mozambique",
-         characteristic %in% c("Total", "Rural", "Urban")) %>% 
-  ggplot(aes(x = factor(characteristic, levels = c("Total", "Rural", "Urban")), value, fill = survey)) + 
+         characteristic %in% c("Total")) %>% 
+  ggplot(aes(x = factor(indicator, levels = c("Any Anemia", "Mild Anemia", "Moderate Anemia", "Severe Anemia")), value, fill = survey)) + 
   geom_col(position = "dodge") +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
@@ -1447,49 +1444,62 @@ df_nut_anemia_pw %>%
         legend.position = "right",
         legend.direction = "vertical",
         legend.title = element_blank()) +
+  scale_y_continuous(labels = percent,
+                     limits = c(0, .6)) +
   geom_text(aes(label = scales::percent(value, 1)),
             size = 3.5,
             vjust = -.75,
-            position = position_dodge(width = 1))
+            position = position_dodge(width = 1)) +
+  labs(x = "",
+       y = "",
+       title = "Prevalence of Anemia in Women",
+       subtitle = " * Percentage of women 15-49 classified as having any anemia (<12.0 g/dl for non-pregnant women and <11.0 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having mild anemia (11.0-11.9 g/dl for non-pregnant women and 10.0-10.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having moderate anemia (8.0-10.9 g/dl for non-pregnant women and 7.0-9.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having severe anemia (<8.0 g/dl for non-pregnant women and <7.0 g/dl for pregnant women)",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 34")
 
 
-df_nut_anemia_pw %>% 
-  filter(characteristic == "Total",
-         !indicator == "Women with mild anemia") %>% 
-  ggplot(aes(year, value, color = factor(indicator, levels = c('Women with any anemia', 'Women with mild anemia', 'Women with moderate anemia', 'Women with severe anemia')))) +
-  geom_line() +
+
+
+
+# Mozambique Provincial Trend
+df_nut_anemia_pw_moz <- df_nut_anemia_pw %>% 
+  filter(country == "Mozambique",
+         group == "Province",
+         indicator != "Mild Anemia")
+
+df_nut_anemia_pw_moz %>% 
+  ggplot(aes(year, value, color = indicator)) + 
+  geom_line(size = 1, alpha = .75) +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         plot.title = element_text(size = 16, vjust = 4),
         plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
         plot.caption = element_text(size = 9, vjust = 1),
         panel.spacing = unit(.75, "cm"),
-        axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
+        axis.text.x = element_blank(),
         legend.position = "right",
         legend.direction = "vertical",
         legend.title = element_blank()) +
+  geom_text(aes(label = percent(value, 1)), 
+            data = df_nut_anemia_pw_moz %>%  filter(year == "2022"),
+            size = 3,
+            vjust = -.5, 
+            hjust = 1) +
+  geom_text(aes(label = percent(value, 1)), 
+            data = df_nut_anemia_pw_moz %>%  filter(year == "2011"),
+            size = 3,
+            vjust = -.5, 
+            hjust = -0) +
   scale_x_continuous(breaks=c(2011, 2022), labels=c('DHS 2011', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
-                     limits = c(0, .8)) +
-  geom_text(aes(label = indicator),
-            data = df_nut_anemia_pw %>% filter(year == "2022", characteristic == "Total", !indicator == "Women with mild anemia"),
-            size = 3.5,
-            vjust = -.75,
-            hjust = 1,
-            nudge_y = 0, 
-            nudge_x = -1) +
-  geom_text(aes(label = scales::percent(value, .8)),
-            data = df_nut_anemia_pw %>% filter(characteristic == "Total", !indicator == "Women with mild anemia"),
-            size = 3.5,
-            vjust = -.5,
-            hjust = .5,
-            nudge_y = 0, 
-            nudge_x = 0) +
+                     limits = c(0, 1)) + 
   labs(x = "",
        y = "",
-       title = "Prevalence of Anemia in Women",
-       subtitle = " * Percentage of women 15-49 classified as having any anemia (<12.0 g/dl for non-pregnant women and <11.0 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having moderate anemia (8.0-10.9 g/dl for non-pregnant women and 7.0-9.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having severe anemia (<8.0 g/dl for non-pregnant women and <7.0 g/dl for pregnant women)",
-       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 34")
+       title = "Prevalence of Anemia in Women by Province",
+       subtitle = " * Percentage of women 15-49 classified as having any anemia (<12.0 g/dl for non-pregnant women and <11.0 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having mild anemia (11.0-11.9 g/dl for non-pregnant women and 10.0-10.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having moderate anemia (8.0-10.9 g/dl for non-pregnant women and 7.0-9.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having severe anemia (<8.0 g/dl for non-pregnant women and <7.0 g/dl for pregnant women)",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 34") +
+  facet_wrap(~ factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
+
+
 
 # Nutrition Children with Anemia ---------------------------------------------
 
@@ -1518,7 +1528,7 @@ df_nut_anemia_child <- read_sheet(as_sheets_id(gs_id),
          indicator = str_to_title(indicator))
 
 
-
+# Mozambique National Trend - Line by Type
 df_nut_anemia_child %>% 
   filter(country == "Mozambique",
          characteristic == "Total") %>% 
@@ -1548,7 +1558,7 @@ df_nut_anemia_child %>%
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 39")
 
 
-
+# Mozambique National Trend - Bar by Severity
 df_nut_anemia_child %>% 
   filter(country == "Mozambique",
          characteristic == "Total",
@@ -1566,11 +1576,6 @@ df_nut_anemia_child %>%
         legend.position = "none",
         legend.direction = "vertical",
         legend.title = element_blank()) +
-  # geom_text(aes(label = indicator),
-  #           size = 3.5,
-  #           vjust = 0,
-  #           hjust = .5,
-  #           nudge_x = 0) +
   scale_x_continuous(breaks=c(2011, 2015, 2018, 2022), labels=c('DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, 1)) + 
@@ -1580,46 +1585,6 @@ df_nut_anemia_child %>%
        subtitle = "* Percentage of children under age 5 classified as having mild (10.0-10.9 g/dl) anemia\n* Percentage of children under age 5 classified as having moderate (7.0-9.9 g/dl) anemia\n*	 Percentage of children under age 5 classified as having severe (below 7.0 g/dl) anemia",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 39")
 
-
-
-
-df_nut_anemia_pw %>% 
-  filter(characteristic == "Total",
-         !indicator == "Women with mild anemia") %>% 
-  ggplot(aes(year, value, color = factor(indicator, levels = c('Women with any anemia', 'Women with mild anemia', 'Women with moderate anemia', 'Women with severe anemia')))) +
-  geom_line() +
-  si_style_ygrid() +
-  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
-        plot.title = element_text(size = 16, vjust = 4),
-        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
-        plot.caption = element_text(size = 9, vjust = 1),
-        panel.spacing = unit(.75, "cm"),
-        axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
-        legend.position = "right",
-        legend.direction = "vertical",
-        legend.title = element_blank()) +
-  scale_x_continuous(breaks=c(2011, 2022), labels=c('DHS 2011', 'DHS 2022')) +
-  scale_y_continuous(labels = percent,
-                     limits = c(0, .8)) +
-  geom_text(aes(label = indicator),
-            data = df_nut_anemia_pw %>% filter(year == "2022", characteristic == "Total", !indicator == "Women with mild anemia"),
-            size = 3.5,
-            vjust = -.75,
-            hjust = 1,
-            nudge_y = 0, 
-            nudge_x = -1) +
-  geom_text(aes(label = scales::percent(value, .8)),
-            data = df_nut_anemia_pw %>% filter(characteristic == "Total", !indicator == "Women with mild anemia"),
-            size = 3.5,
-            vjust = -.5,
-            hjust = .5,
-            nudge_y = 0, 
-            nudge_x = 0) +
-  labs(x = "",
-       y = "",
-       title = "Prevalence of Anemia in Women",
-       subtitle = " * Percentage of women 15-49 classified as having any anemia (<12.0 g/dl for non-pregnant women and <11.0 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having moderate anemia (8.0-10.9 g/dl for non-pregnant women and 7.0-9.9 g/dl for pregnant women)\n * Percentage of women 15-49 classified as having severe anemia (<8.0 g/dl for non-pregnant women and <7.0 g/dl for pregnant women)",
-       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 34")
 
 # Nutrition Children Stunted ---------------------------------------------
 
@@ -1685,10 +1650,11 @@ df_nut_stunted %>%
        caption = "Sources: 2022 DHS Key Indicator Report, Page 28")
 
 
-# Horizontal Bar
+# Horizontal Bar by province
 df_nut_stunted %>% 
   filter(survey == "2022 DHS",
-         characteristic != "Total") %>% 
+         characteristic != "Total",
+         !str_detect(characteristic, "Wealth quintile")) %>% 
   ggplot(aes(x = fct_reorder(characteristic, value, .desc = TRUE), y = value)) +
   geom_col(width = 0.75, fill = "#F8766D") +
   scale_y_continuous(labels = percent) + 
@@ -1715,7 +1681,36 @@ df_nut_stunted %>%
        subtitle = "")
 
 
-
+# Horizontal Bar by wealth quintile
+df_nut_stunted %>% 
+  filter(survey == "2022 DHS",
+         characteristic != "Total",
+         str_detect(characteristic, "Wealth quintile")) %>% 
+  ggplot(aes(x = fct_reorder(characteristic, value, .desc = FALSE), y = value)) +
+  geom_col(width = 0.75, fill = "#F8766D") +
+  scale_y_continuous(labels = percent) + 
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        panel.spacing = unit(.75, "cm"),
+        plot.title = element_text(size = 16, vjust = 0),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9),
+        axis.text.x = element_text(size = 9, vjust = 1, hjust=1),
+        legend.position="none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) + 
+  scale_y_continuous(labels = percent,
+                     limits = c(0, .5)) + 
+  geom_text(aes(label = percent(value, 1)), 
+            size = 3.5,
+            vjust = 0,
+            hjust = -.25, 
+            colour = "#F8766D") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "Child Stunting by Wealth Quintile (2022)",
+       caption = "Sources: 2022 DHS Key Indicator Report, Page 28")
 
 
 # Mozambique Provincial Trend
