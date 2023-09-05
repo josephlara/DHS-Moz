@@ -377,8 +377,8 @@ df_malaria_itn %>%
   filter(survey == "2022 DHS",
          indicator == "Households with at least one ITN",
          characteristic != "Total") %>% 
-  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = value, fill = characteristic)) +
-  geom_col(width = 0.75) +
+  ggplot(aes(x = factor(characteristic, levels = c('Maputo Provincia',  'Zambézia', 'Tete', 'Maputo Cidade', 'Niassa', 'Manica', 'Cabo Delgado', 'Inhambane', 'Sofala', 'Nampula', 'Gaza')), y = value)) +
+  geom_col(width = 0.75, fill = "grey50") +
   scale_y_continuous(labels = percent) + 
   theme_fivethirtyeight() +
   si_style_xgrid() +
@@ -481,8 +481,8 @@ df_malaria_itn_pwc %>%
   filter(survey == "2022 DHS",
          indicator == "Children under 5 who slept under ITN",
          !characteristic %in% c("Total", "Urban", "Rural")) %>% 
-  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = value, fill = characteristic)) +
-  geom_col(width = 0.75) +
+  ggplot(aes(x = factor(characteristic, levels = c('Maputo Provincia',  'Zambézia', 'Tete', 'Maputo Cidade', 'Niassa', 'Manica', 'Cabo Delgado', 'Inhambane', 'Sofala', 'Nampula', 'Gaza')), y = value)) +
+  geom_col(width = 0.75, fill = "grey50") +
   scale_y_continuous(labels = percent) + 
   theme_fivethirtyeight() +
   si_style_xgrid() +
@@ -557,9 +557,9 @@ df_malaria_itn_child_delta <- bind_rows(df_malaria_itn_ownership, df_malaria_itn
   select(!c(`Households with at least one ITN`, `Children under 5 who slept under ITN`))
 
 df_malaria_itn_child_delta %>% 
-  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
-  
-  # ggplot(aes(x = fct_reorder(characteristic, `ITN Ownership / Use Delta`), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
+  # ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
+  # ggplot(aes(x = fct_reorder(characteristic, `ITN Ownership / Use Delta`), y = `ITN Ownership / Use Delta`, fill = characteristic)) +
+  ggplot(aes(x = fct_reorder(characteristic, `ITN Ownership / Use Delta`), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
   geom_col(width = 0.75, alpha = .75) +
   scale_y_continuous(labels = percent) + 
   theme_fivethirtyeight() +
@@ -741,15 +741,16 @@ df_malaria_prev_moz_reg <- load_clean_province_long("Regional Malaria prevalence
          characteristic == "Total")
 
 unique(df_malaria_prev$country)
-country_filter <- c("Mozambique", "Angola", "South Africa", "Zambia", "Zimbabwe", "Tanzania", "Kenya", "Uganda", "Lesotho", "Nambia", "Malawi", "Rwanda")
+country_filter <- c("Mozambique", "Angola", "South Africa", "Zambia", "Zimbabwe", "Tanzania", "Kenya", "Uganda", "Lesotho", "Namibia", "Malawi", "Rwanda")
 
 # Regional trend
 df_malaria_prev %>% 
   filter(characteristic == "Total",
+         country %in% country_filter,
          year > 2008) %>% 
   mutate(value = value / 100) %>% 
   ggplot(aes(year, value, color = country)) + 
-  geom_line(size = 1, alpha = .75) +
+  geom_line(size = 1, alpha = .6) +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         plot.title = element_text(size = 16, vjust = 4),
@@ -766,7 +767,7 @@ df_malaria_prev %>%
             hjust = .75) +
   scale_x_continuous(breaks = c(1980:2024)) +
   scale_y_continuous(labels = percent,
-                     limits = c(0, .8)) + 
+                     limits = c(0, .6)) + 
   labs(x = "",
        y = "",
        title = "Malaria Prevalence in Children by Country (2006-2022)",
@@ -1377,13 +1378,13 @@ df_fp_type <- read_sheet(as_sheets_id(gs_id),
                          col_types = c("ccnnnnnnnnnnnnnnnnnnnn"))  %>%
   pivot_longer(Sterilization:Other, names_to = "indicator", values_to = "value") %>% 
   clean_names() %>% 
-  select(category, characteristic, indicator, value)
+  select(category, characteristic, indicator, value) %>% 
+  mutate(indicator = fct_lump(indicator, n = 7))
 
 df_fp_type %>% 
-  mutate(indicator = fct_lump(indicator, n = 7)) %>% 
-  filter(category == "Province",
-         !indicator %in% c('Emergency Contraception', 'Female Condom', 'Standard Day Method', 'Lactation Method')) %>% 
-  ggplot(aes(x = factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')), y = value, fill = indicator)) +
+  filter(category %in% c("Province", "Residence", "Wealth")) %>% 
+  filter(!indicator %in% c('Emergency Contraception', 'Female Condom', 'Standard Day Method', 'Lactation Method')) %>%
+  ggplot(aes(x = factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade', 'Urban', 'Rural', 'Lowest', 'Low', 'Middle', 'High', 'Highest')), y = value, fill = indicator)) +
   geom_col(position = "fill") +
   si_style_xgrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
@@ -1392,20 +1393,45 @@ df_fp_type %>%
         plot.caption = element_text(size = 9, vjust = 1),
         panel.spacing = unit(.75, "cm"),
         axis.text.x = element_text(size = 10, angle = 45, vjust = 1, hjust=1),
-        legend.position = "right",
+        legend.position = "none",
         legend.direction = "vertical",
         legend.title = element_blank()) +
   scale_fill_discrete() +
   scale_y_continuous(labels = percent) +
   labs(x = "",
        y = "",
-       title = "Current use of anticontraceptive methods by type",
-       subtitle = "Percentage distribution among woment currently married or in union and among sexually active women age 15-49 by method type",
+       title = "Current use of contraceptive methods by\ntype, residence, and wealth quintile",
+       subtitle = "Percentage distribution among woment currently married or in union and among sexually\nactive women age 15-49 by method type\n",
        caption = "2022 DHS Key Indicator Report, Page 15")
 
 
+# By Wealth
 df_fp_type %>% 
-  filter(category == "Wealth") %>% 
+  filter(category == "Residence",
+         !indicator %in% c('Emergency Contraception', 'Female Condom', 'Standard Day Method', 'Lactation Method')) %>% 
+  ggplot(aes(x = factor(characteristic, levels=c('Rural', 'Urban')), y = value, fill = indicator)) +
+  geom_col(position = "fill") +
+  si_style_xgrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_text(size = 10, angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  scale_fill_discrete() +
+  scale_y_continuous(labels = percent) +
+  labs(x = "",
+       y = "",
+       title = "By Residence",
+       subtitle = "Percentage distribution among woment currently married or in union and among sexually active\nwomen age 15-49 by method type",
+       caption = "2022 DHS Key Indicator Report, Page 15")
+
+df_fp_type %>% 
+  filter(category == "Wealth",
+         !indicator %in% c('Emergency Contraception', 'Female Condom', 'Standard Day Method', 'Lactation Method')) %>% 
   ggplot(aes(x = factor(characteristic, levels=c('Lowest', 'Low', 'Middle', 'High', 'Highest')), y = value, fill = indicator)) +
   geom_col(position = "fill") +
   si_style_xgrid() +
@@ -1415,14 +1441,14 @@ df_fp_type %>%
         plot.caption = element_text(size = 9, vjust = 1),
         panel.spacing = unit(.75, "cm"),
         axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
-        legend.position = "right",
+        legend.position = "none",
         legend.direction = "vertical",
         legend.title = element_blank()) +
   scale_y_continuous(labels = percent) +
   labs(x = "",
        y = "",
-       title = "Current use of Contraception by Wealth Quintile",
-       subtitle = "Percentage distribution among women currently married or in union and among sexually active women age \n15-49 by method type",
+       title = "By Wealth Quintile",
+       subtitle = "Percentage distribution among women currently married or\nin union and among sexually active women age 15-49 by method type",
        caption = "")
 
 
@@ -1446,6 +1472,27 @@ df_fp_type %>%
        title = "Current use of anticontraceptive methods by type",
        subtitle = "Percentage distribution among woment currently married or in union and among sexually active women age \n15-49 by method type",
        caption = "")
+
+
+# Family Planning Current Use MCM -----------------------------------------
+
+df_fp_current <- read_sheet(as_sheets_id(gs_id), 
+                            sheet = "Current use of modern FP")  %>% 
+  clean_names() %>% 
+  separate(characteristic, into = c("group", "characteristic"), sep = " : ") %>% 
+  mutate(characteristic = str_remove_all(characteristic, " \\(L1\\)")) %>% 
+  separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
+  mutate(year = as.numeric(year),
+         value = value / 100) %>% 
+  select(!temp) %>% 
+  relocate(value, .after = everything())
+  
+  mutate(characteristic = str_remove_all(characteristic, "Provinces : |L1|\\(|\\)"),
+         characteristic = str_remove_all(characteristic, "Residence : |L1|\\(|\\)"),
+         characteristic = str_trim(characteristic, side = "right"),
+         characteristic = str_remove_all(characteristic, " 15-49"),
+         value = value / 100) %>% 
+  separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
 
 
 # Nutrition Women with Anemia ---------------------------------------------
