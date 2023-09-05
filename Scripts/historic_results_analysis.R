@@ -377,14 +377,14 @@ df_malaria_itn %>%
   filter(survey == "2022 DHS",
          indicator == "Households with at least one ITN",
          characteristic != "Total") %>% 
-  ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
+  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = value, fill = characteristic)) +
   geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
   theme_fivethirtyeight() +
   si_style_xgrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         panel.spacing = unit(.75, "cm"),
-        plot.title = element_text(size = 16, vjust = 4),
+        plot.title = element_text(size = 14, vjust = 4),
         plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
         plot.caption = element_text(size = 9),
         legend.position="none",
@@ -396,8 +396,7 @@ df_malaria_itn %>%
             colour = "white") +
   labs(x = "",
        y = "",
-       title = "Ownership of ITN by Province (2022)",
-       subtitle = "",
+       title = "Ownership of ITN (2022)",
        caption = "Source: 2022 DHS Key Indicator Report, Page 36")
 
 # Mozambique Provincial Trend
@@ -416,6 +415,8 @@ df_malaria_itn_moz %>%
         plot.caption = element_text(size = 9, vjust = 1),
         panel.spacing = unit(.75, "cm"),
         axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        strip.text.x = element_text(size = 9),
         legend.position = "none",
         legend.direction = "vertical",
         legend.title = element_blank()) +
@@ -429,7 +430,7 @@ df_malaria_itn_moz %>%
                      limits = c(0, 1)) + 
   labs(x = "",
        y = "",
-       title = "Ownership of ITN by Province",
+       title = "Ownership of ITN by Province & Year",
        subtitle = "* Percentage of households with at least one insecticide treated mosquito net (ITN)",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 36") +
   facet_wrap(~ factor(characteristic, levels = c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
@@ -480,14 +481,14 @@ df_malaria_itn_pwc %>%
   filter(survey == "2022 DHS",
          indicator == "Children under 5 who slept under ITN",
          !characteristic %in% c("Total", "Urban", "Rural")) %>% 
-  ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
+  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = value, fill = characteristic)) +
   geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
   theme_fivethirtyeight() +
   si_style_xgrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         panel.spacing = unit(.75, "cm"),
-        plot.title = element_text(size = 16, vjust = 4),
+        plot.title = element_text(size = 14, vjust = 4),
         plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
         plot.caption = element_text(size = 9),
         legend.position="none",
@@ -499,8 +500,7 @@ df_malaria_itn_pwc %>%
             colour = "white") +
   labs(x = "",
        y = "",
-       title = "ITN use among Children by Province (2022)",
-       subtitle = "",
+       title = "ITN use among Children (2022)",
        caption = "Source: 2022 DHS Key Indicator Report, Page 38")
 
 # Mozambique Provincial Trend
@@ -539,6 +539,48 @@ df_malaria_itn_moz %>%
 
 
 
+# Malaria Ownership vs. Use Delta -----------------------------------------
+
+df_malaria_itn_ownership <- df_malaria_itn %>% 
+  filter(survey == "2022 DHS",
+         indicator == "Households with at least one ITN",
+         !characteristic %in% c("Total", "Urban", "Rural"))
+
+df_malaria_itn_child_use <- df_malaria_itn_pwc %>% 
+  filter(survey == "2022 DHS",
+         indicator == "Children under 5 who slept under ITN",
+         !characteristic %in% c("Total", "Urban", "Rural"))
+
+df_malaria_itn_child_delta <- bind_rows(df_malaria_itn_ownership, df_malaria_itn_child_use) %>% 
+  pivot_wider(names_from = indicator, values_from = value) %>% 
+  mutate(`ITN Ownership / Use Delta` = `Households with at least one ITN` - `Children under 5 who slept under ITN`) %>% 
+  select(!c(`Households with at least one ITN`, `Children under 5 who slept under ITN`))
+
+df_malaria_itn_child_delta %>% 
+  ggplot(aes(x = factor(characteristic, levels = c('Maputo Cidade', 'Maputo Provincia',  'Gaza', 'Inhambane', 'Sofala', 'Manica', 'Tete', 'Zambézia', 'Nampula', 'Cabo Delgado', 'Niassa')), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
+  
+  # ggplot(aes(x = fct_reorder(characteristic, `ITN Ownership / Use Delta`), y = `ITN Ownership / Use Delta`, fill = `ITN Ownership / Use Delta`)) +
+  geom_col(width = 0.75, alpha = .75) +
+  scale_y_continuous(labels = percent) + 
+  theme_fivethirtyeight() +
+  si_style_xgrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        panel.spacing = unit(.75, "cm"),
+        plot.title = element_text(size = 14, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9),
+        legend.position="none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) + 
+  scale_fill_gradient(low="blue", high="red") +
+  coord_flip() +
+  geom_text(aes(label = percent(`ITN Ownership / Use Delta`, 1)), 
+            hjust = 1.5, 
+            colour = "white") +
+  labs(x = "",
+       y = "",
+       title = "Delta of ITN Ownership vs. Use",
+       caption = "Source: 2022 DHS Key Indicator Report, Page 38")
 
 # Malaria IPT -------------------------------------------------------------
 
@@ -693,12 +735,18 @@ df_malaria_ipt3 %>%
 df_malaria_prev <- load_clean_province_long("Regional Malaria prevalence according to RDT") %>% 
   mutate(value = value * 100)
 
+df_malaria_prev_moz_reg <- load_clean_province_long("Regional Malaria prevalence according to RDT") %>% 
+  mutate(value = value * 100) %>% 
+  filter(country == "Mozambique",
+         characteristic == "Total")
+
 unique(df_malaria_prev$country)
 country_filter <- c("Mozambique", "Angola", "South Africa", "Zambia", "Zimbabwe", "Tanzania", "Kenya", "Uganda", "Lesotho", "Nambia", "Malawi", "Rwanda")
 
 # Regional trend
 df_malaria_prev %>% 
-  filter(characteristic == "Total") %>% 
+  filter(characteristic == "Total",
+         year > 2008) %>% 
   mutate(value = value / 100) %>% 
   ggplot(aes(year, value, color = country)) + 
   geom_line(size = 1, alpha = .75) +
@@ -715,8 +763,8 @@ df_malaria_prev %>%
   geom_text(aes(label = country),
             size = 3.5,
             vjust = -.75, 
-            hjust = .5) +
-  scale_x_continuous(breaks = c(1980:2022)) +
+            hjust = .75) +
+  scale_x_continuous(breaks = c(1980:2024)) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .8)) + 
   labs(x = "",
@@ -785,7 +833,7 @@ df_malaria_prev_moz %>%
   scale_y_continuous(labels = percent) + 
   labs(x = "",
        y = "",
-       title = "Malaria Prevalence by Province",
+       title = "Malaria Prevalence by Province & Year",
        subtitle = "Percentage of children age 6-59 months tested using a rapid diagnostic test (RDT) who are positive for malaria",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 42") +
   facet_wrap(~ factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
@@ -815,7 +863,6 @@ df_malaria_prev %>%
   labs(x = "",
        y = "",
        title = "Malaria prevalence by Province (2022)",
-       subtitle = "",
        caption = "Source: 2022 DHS Key Indicator Report, Page 42")
 
 
