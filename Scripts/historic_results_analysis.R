@@ -1682,13 +1682,22 @@ df_nut_anemia_child %>%
 
 # Nutrition Children Stunted ---------------------------------------------
 
-df_nut_stunted <- load_clean_province_long("Children stunted")
 
+df_nut_stunted <- read_sheet(as_sheets_id(gs_id), 
+                            sheet = "Children stunted")  %>% 
+  clean_names() %>% 
+  separate(characteristic, into = c("group", "characteristic"), sep = " : ") %>% 
+  mutate(characteristic = str_remove_all(characteristic, " \\(L1\\)")) %>% 
+  separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
+  mutate(year = as.numeric(year),
+         value = value / 100) %>% 
+  select(!temp) %>% 
+  relocate(value, .after = everything())
 
 # Mozambique National Trend
 df_nut_stunted %>% 
   filter(country == "Mozambique",
-         characteristic == "Total") %>% 
+         group == "Total") %>% 
   ggplot(aes(year, value)) + 
   geom_line(size = 1, alpha = .75) +
   si_style_ygrid() +
@@ -1719,7 +1728,7 @@ df_nut_stunted %>%
 # Mozambique Provincial Order
 df_nut_stunted %>% 
   filter(survey == "2022 DHS",
-         characteristic != "Total") %>% 
+         group == "Provinces") %>% 
   ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
   geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
@@ -1744,18 +1753,17 @@ df_nut_stunted %>%
        caption = "Sources: 2022 DHS Key Indicator Report, Page 28")
 
 
-# Horizontal Bar by province
+# Horizontal Bar by wealth & education
 df_nut_stunted %>% 
   filter(survey == "2022 DHS",
-         characteristic != "Total",
-         !str_detect(characteristic, "Wealth quintile")) %>% 
-  ggplot(aes(x = fct_reorder(characteristic, value, .desc = TRUE), y = value)) +
-  geom_col(width = 0.75, fill = "#F8766D") +
+         group %in% c("Wealth quintile", "Education")) %>% 
+  ggplot(aes(x = factor(characteristic, levels=c('Lowest', 'Fourth', 'Middle', 'Second', 'Highest', 'No education', 'Primary', 'Secondary', 'Higher')), y = value, fill = group)) +
+  geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         panel.spacing = unit(.75, "cm"),
-        plot.title = element_text(size = 16, vjust = 0),
+        plot.title = element_text(size = 16, vjust = 3),
         plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
         plot.caption = element_text(size = 9),
         axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust=1),
@@ -1764,16 +1772,54 @@ df_nut_stunted %>%
         legend.title = element_blank()) + 
   scale_y_continuous(labels = percent,
                      limits = c(0, .5)) + 
+  geom_text(aes(label = percent(value, 1), color = group), 
+            size = 3.5,
+            vjust = -.5,
+            hjust = .5) +
+  labs(x = "",
+       y = "",
+       title = "Child Stunting by Wealth & Education (2022)",
+       subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)\n",
+       caption = "Sources: 2022 DHS Key Indicator Report, Page 28")
+
+
+# Horizontal Bar by wealth
+df_nut_stunted %>% 
+  filter(survey == "2022 DHS",
+         group == "Education") %>% 
+  ggplot(aes(x = fct_reorder(characteristic, value, .desc = TRUE), y = value)) +
+  geom_col(width = 0.75, fill = "#F8766D") +
+  scale_y_continuous(labels = percent) + 
+  si_style_ygrid() +
+  coord_flip() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        panel.spacing = unit(.75, "cm"),
+        plot.title = element_text(size = 16, vjust = 0),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9),
+        axis.text.x = element_text(size = 9, vjust = 1, hjust=1),
+        legend.position="none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) + 
+  scale_y_continuous(labels = percent,
+                     limits = c(0, .5)) + 
   geom_text(aes(label = percent(value, 1)), 
             size = 3.5,
-            vjust = -1,
-            hjust = .5, 
+            vjust = 0,
+            hjust = -.15, 
             colour = "#F8766D") +
   labs(x = "",
        y = "",
-       title = "Child Stunting by Province (2022)",
+       title = "Child Stunting by Education (2022)",
        subtitle = "")
 
+
+df_nut_stunted <- read_sheet(as_sheets_id(gs_id), 
+                            sheet = "Children stunted")  %>% 
+  clean_names() %>% 
+  separate(characteristic, into = c("group", "characteristic"), sep = " : ") %>% 
+  mutate(characteristic = str_remove_all(characteristic, " \\(L1\\)")) 
+  
 
 # Horizontal Bar by wealth quintile
 df_nut_stunted %>% 
@@ -1843,15 +1889,59 @@ facet_wrap(~ factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula'
 
 
 
+
+# Nutrition Children Stunted Regional -------------------------------------
+
+df_stunted_reg <- load_clean_province_long("Children stunted regional") %>% 
+  mutate(value = value * 100)
+
+df_stunted_reg %>% 
+  ggplot(aes(year, value, color = country)) + 
+  geom_line(size = 1, alpha = .75) +
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  geom_text(aes(label = country),
+            size = 3.5,
+            vjust = -.75, 
+            hjust = .75) +
+  scale_x_continuous(breaks = c(1980:2024)) +
+  scale_y_continuous(limits = c(0, 60)) + 
+  labs(x = "",
+       y = "",
+       title = "Child Stunting by Country (1997-2022)",
+       subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)",
+       caption = "Sources:\nStatcompiler, 2019 IOF Report, Page 19, 2022 DHS Key Indicator Report, Page 28")
+
+
 # Nutrition Children Wasted ---------------------------------------------
 
 df_nut_wasted <- load_clean_province_long("Children wasted")
 
 
+df_nut_wasted <- read_sheet(as_sheets_id(gs_id), 
+                             sheet = "Children wasted")  %>% 
+  clean_names() %>% 
+  separate(characteristic, into = c("group", "characteristic"), sep = " : ") %>% 
+  mutate(characteristic = str_remove_all(characteristic, " \\(L1\\)")) %>% 
+  separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
+  mutate(year = as.numeric(year),
+         value = value / 100) %>% 
+  select(!temp) %>% 
+  relocate(value, .after = everything())
+
+
 # Mozambique National Trend
 df_nut_wasted %>% 
   filter(country == "Mozambique",
-         characteristic == "Total") %>% 
+         group == "Total") %>% 
   ggplot(aes(year, value)) + 
   geom_line(size = 1, alpha = .75) +
   si_style_ygrid() +
@@ -1882,7 +1972,7 @@ df_nut_wasted %>%
 # Mozambique Provincial Order
 df_nut_wasted %>% 
   filter(survey == "2022 DHS",
-         characteristic != "Total") %>% 
+         group == "Provinces") %>% 
   ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
   geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
@@ -1975,7 +2065,7 @@ df_nut_wasted_moz %>%
 # Nutrition Children Stunted/Wasted ---------------------------------------------
 
 df_nut_sum <- bind_rows(df_nut_stunted, df_nut_wasted) %>% 
-  filter(characteristic == "Total")
+  filter(group == "Total")
 
 df_nut_sum_prov <- bind_rows(df_nut_stunted, df_nut_wasted) %>% 
   filter(characteristic != "Total")
@@ -2022,7 +2112,7 @@ df_nut_sum %>%
        y = "",
        title = "Child Stunting and Wasting",
        subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)\n* Percentage of children wasted (below -2 SD of weight for height according to the WHO standard)",
-       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 21")
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 28")
 
 
 
@@ -2051,6 +2141,39 @@ df_nut_sum_prov %>%
   facet_wrap(~ factor(characteristic, levels = c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
 
 
+
+
+# Nutrition Breastfeeding -------------------------------------------------
+
+df_nut_bf <- load_clean_province_long("Children exclusively breastfed")
+
+df_nut_bf %>% 
+  filter(country == "Mozambique",
+         characteristic == "Total") %>% 
+  ggplot(aes(year, value)) + 
+  geom_line(size = 1, alpha = .75) +
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            size = 3.5,
+            vjust = -.75, 
+            hjust = .5) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
+  scale_y_continuous(labels = percent,
+                     limits = c(0, 1)) + 
+  labs(x = "",
+       y = "",
+       title = "Children exclusively breastfed",
+       subtitle = "	Percentage of youngest children under six months of age living with the mother who\nare exclusively breastfed",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 30")
 
 # HIV Testing History -----------------------------------------------------
 
