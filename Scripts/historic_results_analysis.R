@@ -83,17 +83,21 @@ df_demproj_prov %>%
             hjust = .5,
             nudge_y = 0, 
             nudge_x = -2) +
+  geom_vline(xintercept = 2023, 
+             color = "grey50", size = .5) +
+  annotate("text", x = 2023, y = 10, label = 2023, angle = 90, hjust = -3, vjust = -.5, size = 4.5, color = "grey50") +
   scale_x_continuous(breaks = seq(from = 2020, to = 2050, by = 5)) +
   scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M", accuracy = 1)) +
   labs(x = "",
        y = "Population Size (Millions)",
-       title = "Mozambique Demographic Projections by Province",
-       subtitle = "Demographic projections generated subsequent to 2017 Census",
+       title = "Mozambique 2017 Census Projections by Province",
+       # subtitle = "Demographic projections generated subsequent to 2017 Census",
        caption = "Source: INE Demographic Projections")
 
 # Fertility Rate ---------------------------------------------------------------
 
-df_fertility <- load_clean_province_long("Total Fertility Rate")
+df_fertility <- load_clean_province_long("Total Fertility Rate") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022))
 
 
 df_fertility %>% 
@@ -115,8 +119,9 @@ df_fertility %>%
             vjust = -.6, 
             hjust = .5) +
   scale_y_continuous(labels = number,
-                     limits = c(3, 7)) + 
-  scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
+                     limits = c(3, 7)) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
   labs(x = "",
        y = "",
        title = "Total Fertility Rate by Residence",
@@ -168,7 +173,7 @@ df_adol_mothers <- load_clean_province_long("Teenagers who are mothers")
 df_adol_mothers %>% 
   filter(characteristic %in% c("Total", "Urban", "Rural")) %>% 
   ggplot(aes(year, value, color = characteristic)) + 
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         plot.title = element_text(size = 16, vjust = 4),
@@ -192,6 +197,46 @@ df_adol_mothers %>%
        title = "Teenagers who are mothers",
        subtitle = "Percentage of teenage women who are mothers",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 13")
+
+
+# Subanalysis of Pregnancy and Maternity
+df_pregnancy <- load_clean_province_long("Pregnancy History") %>% 
+  select(!c(indicator, value)) %>% 
+  pivot_longer(has_had_live_birth:has_been_pregnant, names_to = "indicator", values_to = "value") %>% 
+  mutate(indicator = case_when(indicator == "has_been_pregnant" ~ "Has been pregnant",
+                               indicator == "has_had_live_birth" ~ "Has had live birth",
+                               indicator == "has_lost_a_pregnancy" ~ "Has lost a pregnancy",
+                               indicator == "currently_pregnant" ~ "Currently pregnant"))
+
+
+
+# Adolescents who have been pregant by province
+df_pregnancy %>% 
+  filter(indicator == "Has been pregnant",
+         survey == "2022 DHS",
+         characteristic != "Total") %>% 
+  mutate(value = value / 100) %>% 
+  ggplot(aes(x = fct_reorder(characteristic, value, .desc = TRUE), y = value, fill = characteristic)) +
+  geom_col(width = 0.75) +
+  scale_y_continuous(labels = percent) + 
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        panel.spacing = unit(.75, "cm"),
+        plot.title = element_text(size = 14, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 8, color = "grey50"),
+        plot.caption = element_text(size = 9),
+        axis.text.x = element_text(size = 10, angle = 45, vjust = 1.1, hjust=1),
+        legend.position ="none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) + 
+  geom_text(aes(label = percent(value, 1)), 
+            vjust = 1.5,
+            hjust = .5, 
+            colour = "white") +
+  labs(x = "",
+       y = "",
+       title = "Adolescents age 15-19 who have been pregnant (2022)",
+       subtitle = "Percentage of women 15-19 years old who report ever having been pregnant")
 
 # Two year comparison
 df_adol_mothers %>% 
@@ -225,14 +270,6 @@ df_adol_mothers %>%
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 13")
 
   
-# Subanalysis of Pregnancy and Maternity
-df_pregnancy <- load_clean_province_long("Pregnancy History") %>% 
-  select(!c(indicator, value)) %>% 
-  pivot_longer(has_had_live_birth:has_been_pregnant, names_to = "indicator", values_to = "value") %>% 
-  mutate(indicator = case_when(indicator == "has_been_pregnant" ~ "Has been pregnant",
-                               indicator == "has_had_live_birth" ~ "Has had live birth",
-                               indicator == "has_lost_a_pregnancy" ~ "Has lost a pregnancy",
-                               indicator == "currently_pregnant" ~ "Currently pregnant"))
 
 df_pregnancy %>% 
   filter(survey == "2022 DHS",
@@ -241,7 +278,6 @@ df_pregnancy %>%
   ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
   geom_col(width = 0.75) +
   scale_y_continuous(labels = percent) + 
-  theme_fivethirtyeight() +
   si_style_xgrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         panel.spacing = unit(.75, "cm"),
@@ -779,6 +815,7 @@ df_malaria_prev %>%
 df_malaria_prev %>% 
   filter(country == "Mozambique",
          characteristic == "Total") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
   mutate(value = value / 100) %>% 
   ggplot(aes(year, value)) + 
   geom_line(size = 1, alpha = .75) +
@@ -796,7 +833,8 @@ df_malaria_prev %>%
             size = 3.5,
             vjust = -.75, 
             hjust = .5) +
-  scale_x_continuous(breaks=c(2011, 2015, 2018, 2022), labels=c('DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
+  scale_x_continuous(breaks=c(2011, 2022), labels=c('DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(2011, 2015, 2018, 2022), labels=c('DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .5)) + 
   labs(x = "",
@@ -1263,6 +1301,8 @@ df_newborn_2days_moz %>%
 
 df_rnmch_sum <- bind_rows(df_mch_delivery, df_mch_anc4, df_newborn_2days, df_mch_anc_provider) %>% 
   filter(characteristic == "Total") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
+  filter(indicator != "Newborn's first postnatal checkup in the first two days after birth") %>% 
   mutate(indicator = case_when(indicator == "Antenatal visits for pregnancy: 4+ visits" ~ "4 ANC",
                                indicator == "Assistance during delivery from a skilled provider" ~ "Provider at Delivery",
                                indicator == "Newborn's first postnatal checkup in the first two days after birth" ~ "Postnatal Checkup at 2 days",
@@ -1286,25 +1326,80 @@ df_rnmch_sum %>%
   geom_text(aes(label = indicator),
             data = df_rnmch_sum %>% filter(year == "2022"),
             size = 3.5,
-            vjust = -.75,
-            hjust = 1,
+            vjust = -1,
+            hjust = .9,
             nudge_y = 0, 
             nudge_x = -2) +
   geom_text(aes(label = scales::percent(value, 1)),
-            data = df_rnmch_sum %>% filter(year == "2022"),
+            data = df_rnmch_sum,
             size = 3.5,
-            vjust = -.75,
-            hjust = 1,
+            vjust = -1,
+            hjust = .5,
             nudge_y = 0, 
             nudge_x = 0) +
-  scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, 1)) + 
   labs(x = "",
        y = "",
        title = "Summary of RNMCH DHS Indicators",
-       subtitle = "* Percentage of women who had a live birth in the two years preceding the survey who received antenatal care during the pregnancy\n for the most recent live birth from a skilled provider\n* Percentage of women who had a live birth in the two years preceding the survey who had 4+ antenatal care visits. \n* Percentage of live births in the three years preceding the survey assisted by a skilled provider. \n* Percentage of last births in the two years preceding the survey who had their first postnatal",
+       subtitle = "* Percentage of women who had a live birth in the two years preceding the survey who received antenatal care\n   during the pregnancy for the most recent live birth from a skilled provider\n* Percentage of women who had a live birth in the two years preceding the survey who had 4+ antenatal care visits. \n* Percentage of live births in the three years preceding the survey assisted by a skilled provider.",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 21")
+
+
+
+df_rnmch_sum_sub <- bind_rows(df_mch_delivery, df_mch_anc4, df_newborn_2days, df_mch_anc_provider) %>% 
+  filter(!characteristic %in% c("Total", 'Urban', 'Rural')) %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
+  filter(indicator != "Newborn's first postnatal checkup in the first two days after birth",
+         indicator != "Assistance during delivery from a skilled provider") %>% 
+  mutate(indicator = case_when(indicator == "Antenatal visits for pregnancy: 4+ visits" ~ "4 ANC",
+                               indicator == "Assistance during delivery from a skilled provider" ~ "Provider at Delivery",
+                               indicator == "Newborn's first postnatal checkup in the first two days after birth" ~ "Postnatal Checkup at 2 days",
+                               indicator == "Antenatal by skilled health provider" ~ "ANC by skilled provider")
+  )
+
+
+df_rnmch_sum_sub %>% 
+  ggplot(aes(year, value, color = indicator)) + 
+  geom_line(size = 1, alpha = .75) +
+  geom_point(size = 1.5, alpha = .9) +
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_blank(),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  # geom_text(aes(label = indicator),
+  #           data = df_rnmch_sum_sub %>% filter(year == "2022"),
+  #           size = 3.5,
+  #           vjust = -.75,
+  #           hjust = 1,
+  #           nudge_y = 0, 
+  #           nudge_x = -2) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            data = df_rnmch_sum_sub %>% filter(year == "2022"),
+            size = 3.5,
+            vjust = 1.5,
+            hjust = 1,
+            nudge_y = 0, 
+            nudge_x = 0) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
+  scale_y_continuous(labels = percent,
+                     limits = c(0, 1)) + 
+  labs(x = "",
+       y = "",
+       title = "ANC by Skilled Provider & 4 ANC by Province",
+       subtitle = "* Percentage of women who had a live birth in the two years preceding the survey who received antenatal care during the pregnancy for the most recent live birth from a skilled provider\n* Percentage of women who had a live birth in the two years preceding the survey who had 4+ antenatal care visits.",
+       # subtitle = "* Percentage of women who had a live birth in the two years preceding the survey who received antenatal care\n   during the pregnancy for the most recent live birth from a skilled provider\n* Percentage of women who had a live birth in the two years preceding the survey who had 4+ antenatal care visits. \n* Percentage of live births in the three years preceding the survey assisted by a skilled provider. \n* Percentage of last births in the two years preceding the survey who had their first postnatal",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 21") +
+  facet_wrap(~ factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
 
 
 # Family Planning Summary -------------------------------------------------
@@ -1324,13 +1419,33 @@ df_fp_summary <- read_sheet(as_sheets_id(gs_id),
   relocate(value, .after = everything())
 
 
-df_fp_demand <- df_fp_summary %>% 
+df_fp_summary_res <- read_sheet(as_sheets_id(gs_id), 
+                               sheet = "Family planning summary")  %>% 
+  pivot_longer(`Current using modern methods`:`Unmet Need`, names_to = "indicator", values_to = "value") %>% 
+  clean_names() %>% 
+  mutate(characteristic = str_remove_all(characteristic, "Provinces : |L1|\\(|\\)"),
+         characteristic = str_remove_all(characteristic, "Residence : |L1|\\(|\\)"),
+         characteristic = str_trim(characteristic, side = "right"),
+         characteristic = str_remove_all(characteristic, " 15-49"),
+         value = value / 100) %>% 
+  separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  select(!temp) %>% 
+  relocate(value, .after = everything()) %>% 
+  filter(characteristic %in% c('Urban', 'Rural'))
+
+df_fp_demand_res <- df_fp_summary %>% 
   filter(indicator == "Total Demand",
          characteristic == "Total")
+
+df_fp_demand_res <- df_fp_summary %>% 
+  filter(indicator == "Total Demand",
+         characteristic %in% c('Urban', 'Rural'))
 
 df_fp_summary %>% 
   filter(indicator != "Total Demand",
          characteristic == "Total") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
   ggplot(aes(year, value, fill = factor(indicator, levels = c('Unmet Need', 'Currently using traditional methods', 'Current using modern methods')))) +
   geom_col(position = "stack") +
   geom_point(aes(year, value),
@@ -1342,11 +1457,12 @@ df_fp_summary %>%
         plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
         plot.caption = element_text(size = 9, vjust = 1),
         panel.spacing = unit(.75, "cm"),
-        axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust=1),
-        legend.position = "right",
+        axis.text.x = element_text(size = 10, angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
         legend.direction = "vertical",
         legend.title = element_blank()) +
-  scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .6)) +
   geom_text(aes(label = scales::percent(value, 1)),
@@ -1354,10 +1470,10 @@ df_fp_summary %>%
             size = 3.5,
             vjust = 1,
             hjust = .5,
-            nudge_y = 0, 
+            nudge_y = 0,
             nudge_x = 0) +
   geom_text(aes(label = scales::percent(value, 1)),
-            data = df_fp_demand,
+            data = df_fp_demand %>% filter(year %in% c(1997, 2003, 2011, 2022)),
             size = 3.5,
             vjust = -.5,
             hjust = .5,
@@ -1366,9 +1482,52 @@ df_fp_summary %>%
   labs(x = "",
        y = "",
        title = "Trends in use, need, and demand for family planning",
-       subtitle = "Percentage of currently married women aged 15-49",
+       subtitle = "Percentage among currently married women aged 15-49",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 17")
   
+# by Residence
+df_fp_summary_res %>% 
+  filter(indicator != "Total Demand") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
+  ggplot(aes(year, value, fill = factor(indicator, levels = c('Unmet Need', 'Currently using traditional methods', 'Current using modern methods')))) +
+  geom_col(position = "stack") +
+  geom_point(aes(year, value),
+             size = 0, alpha = 0,
+             data = df_fp_demand_res) +
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_text(size = 10, angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
+  scale_y_continuous(labels = percent,
+                     limits = c(0, .7)) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            colour = "white",
+            size = 3.5,
+            vjust = 1,
+            hjust = .5,
+            nudge_y = 0,
+            nudge_x = 0) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            data = df_fp_demand_res %>% filter(year %in% c(1997, 2003, 2011, 2022)),
+            size = 3.5,
+            vjust = -.5,
+            hjust = .5,
+            nudge_y = 0, 
+            nudge_x = 0) +
+  labs(x = "",
+       y = "",
+       title = "Trends in use, need, and demand for family planning",
+       subtitle = "Percentage among currently married women aged 15-49",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 17") +
+  facet_wrap(~characteristic, nrow = 2)
 
 
 # Family Planning Types ---------------------------------------------------
@@ -1699,7 +1858,7 @@ df_nut_stunted %>%
   filter(country == "Mozambique",
          group == "Total") %>% 
   ggplot(aes(year, value)) + 
-  geom_line(size = 1, alpha = .75) +
+  geom_line(linewidth = 1, alpha = .75) +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         plot.title = element_text(size = 16, vjust = 4),
@@ -1722,8 +1881,6 @@ df_nut_stunted %>%
        title = "Child Stunting",
        subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)",
        caption = "Sources:\nStatcompiler, 2019 IOF Report, Page 19, 2022 DHS Key Indicator Report, Page 28")
-
-
 
 # Mozambique Provincial Order
 df_nut_stunted %>% 
@@ -1781,7 +1938,6 @@ df_nut_stunted %>%
        title = "Child Stunting by Wealth & Education (2022)",
        subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)\n",
        caption = "Sources: 2022 DHS Key Indicator Report, Page 28")
-
 
 # Horizontal Bar by wealth
 df_nut_stunted %>% 
@@ -1885,9 +2041,6 @@ df_nut_stunted_moz %>%
        subtitle = "* Percentage of children stunted (below -2 SD of height for age according to the WHO standard)",
        caption = "Sources:\nStatcompiler, 2019 IOF Report, Page 19, 2022 DHS Key Indicator Report, Page 28") +
 facet_wrap(~ factor(characteristic, levels=c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')))
-
-
-
 
 
 # Nutrition Children Stunted Regional -------------------------------------
@@ -2065,7 +2218,8 @@ df_nut_wasted_moz %>%
 # Nutrition Children Stunted/Wasted ---------------------------------------------
 
 df_nut_sum <- bind_rows(df_nut_stunted, df_nut_wasted) %>% 
-  filter(group == "Total")
+  filter(group == "Total") %>% 
+  filter(year %in% c(1997, 2003, 2011, 2022))
 
 df_nut_sum_prov <- bind_rows(df_nut_stunted, df_nut_wasted) %>% 
   filter(characteristic != "Total")
@@ -2087,7 +2241,7 @@ df_nut_sum %>%
   geom_text(aes(label = indicator),
             data = df_nut_sum %>% filter(year == "2022"),
             size = 3.5,
-            vjust = -3.5,
+            vjust = -3,
             hjust = .6,
             nudge_y = 0, 
             nudge_x = -2) +
@@ -2105,7 +2259,8 @@ df_nut_sum %>%
             hjust = 0,
             nudge_y = 0, 
             nudge_x = -1) +
-  scale_x_continuous(breaks=c(1997, 2003, 2011, 2019, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IOF 2019', 'DHS 2022')) +
+  scale_x_continuous(breaks=c(1997, 2003, 2011, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2019, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IOF 2019', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .5)) + 
   labs(x = "",
@@ -2288,3 +2443,64 @@ df_hiv_testing %>%
        title = "Ever tested for HIV and received results",
        subtitle = "*	Percentage of women/men who have ever had an HIV test and received their results",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 48, 49")
+
+
+
+
+# Care Seeking - Fever ----------------------------------------------------
+
+df_care_ari <- load_clean_province_long("Children ARI advice or treatment was sought") %>% 
+  filter(characteristic == 'Total')
+
+df_care_fever <- load_clean_province_long("Children with fever for whom advice or treatment was sought") %>% 
+  filter(characteristic == 'Total')
+
+df_care_diarrhea <- load_clean_province_long("Treatment of diarrhea: Advice or treatment was sought") %>% 
+  filter(characteristic == 'Total')
+
+df_care_all <- bind_rows(df_care_ari, df_care_fever, df_care_diarrhea) %>% 
+  filter(year %in% c(2003, 2011, 2022)) %>% 
+  mutate(indicator = case_when(indicator == "Children ARI advice or treatment was sought" ~ "ARI",
+                               indicator == "Children with fever for whom advice or treatment was sought" ~ "Fever",
+                               indicator == "Treatment of diarrhea: Advice or treatment was sought" ~ "Diarrhea")
+  )
+
+df_care_all %>% 
+  ggplot(aes(year, value, color = indicator)) + 
+  geom_line(size = 1, alpha = .75) +
+  geom_point(size = 1.5, alpha = .9) +
+  si_style_ygrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9, vjust = 1),
+        panel.spacing = unit(.75, "cm"),
+        axis.text.x = element_text(size = 8, angle = 90, vjust = 1, hjust=1),
+        legend.position = "none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) +
+  # geom_text(aes(label = indicator),
+  #           data = df_care_all %>% filter(year == "2022"),
+  #           size = 3.5,
+  #           vjust = -1,
+  #           hjust = .9,
+  #           nudge_y = 0, 
+  #           nudge_x = -2) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            data = df_care_all,
+            size = 3.5,
+            vjust = -1,
+            hjust = .5,
+            nudge_y = 0, 
+            nudge_x = 0) +
+  scale_x_continuous(breaks=c(2003, 2011, 2022), labels=c('DHS 2003', 'DHS 2011', 'DHS 2022')) +
+  # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2018, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'MIS 2018', 'DHS 2022')) +
+  scale_y_continuous(labels = percent,
+                     limits = c(.25, 1)) + 
+  coord_cartesian(clip="off") +
+  labs(x = "",
+       y = "",
+       title = "Child Health: Treatment of ARI, Diarrhea, & Fever",
+       subtitle = "* Percentage of children born in the three/five years preceding the survey with symptoms of acute respiratory infection in the two weeks preceding the survey for whom advice or treatment was sought.\n* 	Percentage of children born in the five (or three) years preceding the survey with diarrhea in the two weeks preceding the survey for whom advice or treatment was sought\n* Percentage of children born in the three/five years preceding the survey with fever in the two weeks preceding the survey for whom advice or treatment was sought.",
+       caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 21") +
+  facet_wrap(~indicator)
