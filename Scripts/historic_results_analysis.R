@@ -2450,13 +2450,16 @@ df_hiv_testing %>%
 # Care Seeking - Fever ----------------------------------------------------
 
 df_care_ari <- load_clean_province_long("Children ARI advice or treatment was sought") %>% 
-  filter(characteristic == 'Total')
+  filter(!characteristic == 'Total',
+         year == 2022)
 
 df_care_fever <- load_clean_province_long("Children with fever for whom advice or treatment was sought") %>% 
-  filter(characteristic == 'Total')
+  filter(!characteristic == 'Total',
+         year == 2022)
 
 df_care_diarrhea <- load_clean_province_long("Treatment of diarrhea: Advice or treatment was sought") %>% 
-  filter(characteristic == 'Total')
+  filter(!characteristic == 'Total',
+         year == 2022)
 
 df_care_all <- bind_rows(df_care_ari, df_care_fever, df_care_diarrhea) %>% 
   filter(year %in% c(2003, 2011, 2022)) %>% 
@@ -2504,3 +2507,44 @@ df_care_all %>%
        subtitle = "* Percentage of children born in the three/five years preceding the survey with symptoms of acute respiratory infection in the two weeks preceding the survey for whom advice or treatment was sought.\n* 	Percentage of children born in the five (or three) years preceding the survey with diarrhea in the two weeks preceding the survey for whom advice or treatment was sought\n* Percentage of children born in the three/five years preceding the survey with fever in the two weeks preceding the survey for whom advice or treatment was sought.",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 21") +
   facet_wrap(~indicator)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Mozambique Provincial Order
+df_care_diarrhea %>% 
+  filter(survey == "2022 DHS") %>% 
+  ggplot(aes(x = fct_reorder(characteristic, value), y = value, fill = characteristic)) +
+  geom_col(width = 0.75) +
+  scale_y_continuous(labels = percent) + 
+  theme_fivethirtyeight() +
+  si_style_xgrid() +
+  theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+        panel.spacing = unit(.75, "cm"),
+        plot.title = element_text(size = 16, vjust = 4),
+        plot.subtitle = element_text(face = "italic", size = 8, vjust = 6, color = "grey50"),
+        plot.caption = element_text(size = 9),
+        legend.position="none",
+        legend.direction = "vertical",
+        legend.title = element_blank()) + 
+  coord_flip() +
+  geom_text(aes(label = percent(value, 1)), 
+            hjust = 1.5, 
+            colour = "white") +
+  labs(x = "",
+       y = "",
+       title = "Child Health: Advice/Treatment for Diarrhea",
+       subtitle = "",
+       caption = "Sources: 2022 DHS Key Indicator Report")
+
+
