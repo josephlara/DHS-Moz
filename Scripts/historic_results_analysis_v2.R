@@ -44,8 +44,20 @@ load_dhs_data <- function(sheetname) {
            characteristic = str_remove_all(characteristic, "Living children: "),
            group = str_remove_all(group, " \\(5-year groups\\)"),
            group = str_remove_all(group, " 15-49"),
-           characteristic = str_trim(characteristic, side = "right")) %>% 
-    select(country, survey, year, area, indicator, group, characteristic, value)
+           characteristic = str_trim(characteristic, side = "right"),
+           snuuid = case_when(country == "Mozambique" & characteristic == "Niassa" ~ "Oi0uBOAAVj9",
+                              country == "Mozambique" & characteristic == "Cabo Delgado" ~ "Zpnu5qr8aoR",
+                              country == "Mozambique" & characteristic == "Nampula" ~ "hxMhtp0apCm",
+                              country == "Mozambique" & characteristic == "Zambézia" ~ "BdBJXnCZRJ5",
+                              country == "Mozambique" & characteristic == "Tete" ~ "TAW0CceBfZ5",
+                              country == "Mozambique" & characteristic == "Manica" ~ "aoD09rD9W63",
+                              country == "Mozambique" & characteristic == "Sofala" ~ "SEWXP7RQHGN",
+                              country == "Mozambique" & characteristic == "Inhambane" ~ "VESMH20BX4e",
+                              country == "Mozambique" & characteristic == "Gaza" ~ "sAFsng0gK1E",
+                              country == "Mozambique" & characteristic == "Maputo Provincia" ~ "YOJg1GA3qHT",
+                              country == "Mozambique" & characteristic == "Maputo Cidade" ~ "NCUTZ4cYJra",
+                              .default = NA)) %>% 
+    select(country, survey, year, area, indicator, group, characteristic, snuuid, value)
   
   return(df)
   
@@ -70,7 +82,7 @@ df14 <- load_dhs_data(sheetname = sheets[14])
 df15 <- load_dhs_data(sheetname = sheets[15])
 df16 <- load_dhs_data(sheetname = sheets[16])
 df17 <- load_dhs_data(sheetname = sheets[17])
-
+df18 <- load_dhs_data(sheetname = sheets[18])
 
 
 df_all <- bind_rows(df1,
@@ -89,7 +101,8 @@ df_all <- bind_rows(df1,
                     df14,
                     df15,
                     df16,
-                    df17)
+                    df17,
+                    df18)
 
 write_csv(df_all, file = "Dataout/dhs_kir.csv")
 
