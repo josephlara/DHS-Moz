@@ -56,7 +56,31 @@ load_dhs_data <- function(sheetname) {
                               country == "Mozambique" & characteristic == "Gaza" ~ "sAFsng0gK1E",
                               country == "Mozambique" & characteristic == "Maputo Provincia" ~ "YOJg1GA3qHT",
                               country == "Mozambique" & characteristic == "Maputo Cidade" ~ "NCUTZ4cYJra",
-                              .default = NA)) %>% 
+                              .default = NA),
+          # new needing testing
+           value = ifelse(!indicator %in% c("Total fertility rate 15-49",
+                                            "Neonatal mortality rate 5 year periods",
+                                            "Infant mortality rate 5 year periods",
+                                            "Under-five mortality rate 5 year periods",
+                                            "Mean height for age of children",
+                                            "Mean weight for height of children",
+                                            "Mean weight for age of children",
+                                            "Mean number of sexual partners in lifetime [Women]",
+                                            "Mean number of sexual partners in lifetime [Men]"),
+                          value / 100,
+                          value),
+           characteristic = case_when(group == "Total" ~ "Total",
+                                      .default = characteristic),
+           group = case_match(group,
+                              c("Age 5-year groups", "Age 10-year groups", "Teenager's age") ~ "Age",
+                              "Age in months" ~ "Age (months)",
+                              "Age (grouped)" ~ "Age (other groups)",
+                              "Child's age" ~ "Age (child's)",
+                              "Mother's age at birth" ~ "Age (mother's at birth",
+                              "Children ever born" ~ "Children ever born (number)",
+                              c("Number of living children 6+", "Number of living children grouped") ~ "Living children (nummber)",
+                              .default = group)) %>% 
+    filter(country != "Mozambique" & group == "Total" | country == "Mozambique") %>% 
     select(country, survey, year, area, indicator, group, characteristic, snuuid, value)
   
   return(df)
@@ -103,6 +127,9 @@ df_all <- bind_rows(df1,
                     df16,
                     df17,
                     df18)
+
+
+
 
 write_csv(df_all, file = "Dataout/dhs_kir.csv")
 
