@@ -4,10 +4,7 @@
 # DATE: 2022-05-12
 # NOTES: 
 
-rm(list = ls())
-
 # DEPENDENCIES ------------------------
-
 
 library(tidyverse)
 library(glitr)
@@ -24,8 +21,12 @@ library(viridis)
 load_secrets()
 
 
-gs_id <- as_sheets_id("1fR9HmYCctPCpMJ5fhBCaljF46x-WQVnMqeooj_tNCM0")
+# GLOBALS -----------------------------------------------------------------
 
+
+gs_id <- as_sheets_id("1fR9HmYCctPCpMJ5fhBCaljF46x-WQVnMqeooj_tNCM0") # define sheet id
+
+sheets <- sheet_names(gs_id) # get the names of individual sheets 
 
 load_dhs_data <- function(sheetname) {
   
@@ -85,48 +86,107 @@ load_dhs_data <- function(sheetname) {
   
   return(df)
   
+} # function to pull and tidy dhs data
+
+tidy_dhs_data <- function(df) {
+  
+  df <- df |> 
+    pivot_longer(where(is.numeric), names_to = "indicator", values_to = "value") %>% 
+    filter(!is.na(value)) %>% 
+    clean_names() %>% 
+    separate_wider_delim(cols = characteristic, delim = " : ", names = c("group", "characteristic"),
+                         too_few = "align_start") %>% 
+    separate(survey, sep = 4, c("year", "temp"), remove = FALSE) %>% 
+    select(!temp) %>% 
+    mutate(year = as.numeric(year),
+           characteristic = str_remove_all(characteristic, "Provinces : |L1|\\(|\\)"),
+           characteristic = str_remove_all(characteristic, "Residence : |L1|\\(|\\)"),
+           characteristic = str_remove_all(characteristic, "Living children: "),
+           group = str_remove_all(group, " \\(5-year groups\\)"),
+           group = str_remove_all(group, " 15-49"),
+           characteristic = str_trim(characteristic, side = "right"),
+           snuuid = case_when(country == "Mozambique" & characteristic == "Niassa" ~ "Oi0uBOAAVj9",
+                              country == "Mozambique" & characteristic == "Cabo Delgado" ~ "Zpnu5qr8aoR",
+                              country == "Mozambique" & characteristic == "Nampula" ~ "hxMhtp0apCm",
+                              country == "Mozambique" & characteristic == "Zambézia" ~ "BdBJXnCZRJ5",
+                              country == "Mozambique" & characteristic == "Tete" ~ "TAW0CceBfZ5",
+                              country == "Mozambique" & characteristic == "Manica" ~ "aoD09rD9W63",
+                              country == "Mozambique" & characteristic == "Sofala" ~ "SEWXP7RQHGN",
+                              country == "Mozambique" & characteristic == "Inhambane" ~ "VESMH20BX4e",
+                              country == "Mozambique" & characteristic == "Gaza" ~ "sAFsng0gK1E",
+                              country == "Mozambique" & characteristic == "Maputo Provincia" ~ "YOJg1GA3qHT",
+                              country == "Mozambique" & characteristic == "Maputo Cidade" ~ "NCUTZ4cYJra",
+                              .default = NA),
+           # new needing testing
+           value = ifelse(!indicator %in% c("Total fertility rate 15-49",
+                                            "Neonatal mortality rate 5 year periods",
+                                            "Infant mortality rate 5 year periods",
+                                            "Under-five mortality rate 5 year periods",
+                                            "Mean height for age of children",
+                                            "Mean weight for height of children",
+                                            "Mean weight for age of children",
+                                            "Mean number of sexual partners in lifetime [Women]",
+                                            "Mean number of sexual partners in lifetime [Men]"),
+                          value / 100,
+                          value),
+           characteristic = case_when(group == "Total" ~ "Total",
+                                      .default = characteristic),
+           group = case_match(group,
+                              c("Age 5-year groups", "Age 10-year groups", "Teenager's age") ~ "Age",
+                              "Age in months" ~ "Age (months)",
+                              "Age (grouped)" ~ "Age (other groups)",
+                              "Child's age" ~ "Age (child's)",
+                              "Mother's age at birth" ~ "Age (mother's at birth",
+                              "Children ever born" ~ "Children ever born (number)",
+                              c("Number of living children 6+", "Number of living children grouped") ~ "Living children (nummber)",
+                              .default = group)) %>% 
+    filter(country != "Mozambique" & group == "Total" | country == "Mozambique") %>% 
+    select(country, survey, year, area, indicator, group, characteristic, snuuid, value)
+  
+  return(df)
+  
+} # function to tidy dhs data
+
+subset_dhs_data <- function(df, disaggregate = "Total", geography = NULL) {
+  
+  df1 <- df |> 
+    filter(group %in% disaggregate)
+  
+  if (missing(geography)) df1
+  else df1 |> filter(country %in% geography)
+  
+} # function to subset dhs dataframe
+
+
+# FETCH & MUNGE DATA ------------------------------------------------------
+
+
+dhs_dfs <- map(sheets, .f = \(x) read_sheet(gs_id, sheet = x)) |> 
+  list_rbind() |> 
+  tidy_dhs_data()
+
+
+
+# ANALYZE INDICATOR DATA --------------------------------------------------
+
+
+df <- dhs_dfs |> 
+  subset_dhs_data(geography = c("Mozambique", "Kenya"),
+                  disaggregate = "Total")
+
+
+
+subset_dhs_data2 <- function(df, disaggregate = "Total", geography = "Mozambique") {
+  
+  df1 <- df |> 
+    filter(group %in% disaggregate)
+  
+  if (geography == "All") df1
+  else df1 |> filter(country %in% geography)
+  
+  # if (missing(geography)) df1 |> filter(country == "Mozambique")
+
 }
-
-sheets <- sheet_names(gs_id)
-
-df1 <- load_dhs_data(sheetname = sheets[1])
-df2 <- load_dhs_data(sheetname = sheets[2])
-df3 <- load_dhs_data(sheetname = sheets[3])
-df4 <- load_dhs_data(sheetname = sheets[4])
-df5 <- load_dhs_data(sheetname = sheets[5])
-df6 <- load_dhs_data(sheetname = sheets[6])
-df7 <- load_dhs_data(sheetname = sheets[7])
-df8 <- load_dhs_data(sheetname = sheets[8])
-df9 <- load_dhs_data(sheetname = sheets[9])
-df10 <- load_dhs_data(sheetname = sheets[10])
-df11 <- load_dhs_data(sheetname = sheets[11])
-df12 <- load_dhs_data(sheetname = sheets[12])
-df13 <- load_dhs_data(sheetname = sheets[13])
-df14 <- load_dhs_data(sheetname = sheets[14])
-df15 <- load_dhs_data(sheetname = sheets[15])
-df16 <- load_dhs_data(sheetname = sheets[16])
-df17 <- load_dhs_data(sheetname = sheets[17])
-df18 <- load_dhs_data(sheetname = sheets[18])
-
-
-df_all <- bind_rows(df1,
-                    df2,
-                    df3,
-                    df4,
-                    df5,
-                    df6,
-                    df7,
-                    df8,
-                    df9,
-                    df10,
-                    df11,
-                    df12,
-                    df13,
-                    df14,
-                    df15,
-                    df16,
-                    df17,
-                    df18)
 
 
 
