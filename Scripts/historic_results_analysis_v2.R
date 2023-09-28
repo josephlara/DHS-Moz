@@ -16,7 +16,6 @@ library(janitor)
 library(scales)
 library(ggthemes)
 library(fs)
-library(patchwork)
 library(viridis)
 load_secrets()
 
@@ -154,8 +153,55 @@ subset_dhs_data <- function(df, disaggregate = "Total", geography = NULL) {
   
   if (missing(geography)) df1
   else df1 |> filter(country %in% geography)
+
   
 } # function to subset dhs dataframe
+
+barchart_vertical_1yr <- function(df, yr_survey, var_indicator, disag, tx_title, tx_caption) {
+  df |> 
+    filter(country == "Mozambique",
+           survey == yr_survey,
+           indicator == var_indicator,
+           group == disag) |>
+    ggplot(aes(x = fct_reorder(characteristic, value), 
+               y = value, 
+               fill = value)) +
+    geom_col(width = 0.75) +
+    coord_flip() +
+    scale_y_continuous(labels = percent) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    theme(
+      plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+      panel.spacing = unit(.75, "cm"),
+      panel.grid.major.y = element_blank(),
+      axis.text.x = element_text(size = 10, vjust = 0, hjust = .5),
+      axis.text.y = element_text(size = 10, vjust = .5, hjust = 1),
+      plot.title = element_text(
+        size = 15, 
+        hjust = 0,
+        vjust = 1,
+        color = "grey30"),
+      plot.subtitle = element_text(
+        face = "italic", 
+        size = 7, 
+        vjust = 6, 
+        color = "grey30"),
+      plot.caption = element_text(
+        size = 9,
+        color = "grey50"),
+      legend.position = "none",
+      legend.direction = "vertical",
+      legend.title = element_blank()
+    ) +
+    geom_text(aes(label = percent(value, 1)), 
+              hjust = 1.5, 
+              size = 3.5,
+              colour = "white") +
+    labs(x = "",
+         y = "",
+         title = tx_title,
+         caption = tx_caption)
+}
 
 
 # FETCH & MUNGE DATA ------------------------------------------------------
@@ -166,31 +212,77 @@ dhs_dfs <- map(sheets, .f = \(x) read_sheet(gs_id, sheet = x)) |>
   tidy_dhs_data()
 
 
-
 # ANALYZE INDICATOR DATA --------------------------------------------------
 
 
-df <- dhs_dfs |> 
-  subset_dhs_data(geography = c("Mozambique", "Kenya"),
-                  disaggregate = "Total")
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Women with any anemia",
+                        disag = "Provinces",
+                        tx_title = "Women with any anemia",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
 
 
+dhs_dfs |> 
+  filter(country == "Mozambique", 
+         indicator == "Place of delivery: Health facility", # input
+         group == "Residence") |> # input
+  ggplot(aes(year, value, color = characteristic)) + 
+  geom_line(linewidth = 1, alpha = .75) +
+  geom_point() +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(labels = percent,
+                     limits = c(0, 1)) + 
+  theme(
+    panel.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+    plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey80",
+                                      size = 0.25,
+                                      linetype = 1),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      size = 14, 
+      hjust = 0,
+      vjust = 1,
+      color = "grey30"),
+    plot.subtitle = element_text(
+      face = "italic", 
+      size = 7, 
+      vjust = 6, 
+      color = "grey30"),
+    plot.caption = element_text(
+      size = 9,
+      color = "grey50",
+      hjust = 0),
+    legend.title = element_blank(),
+    legend.text=element_text(size = 11),
+    legend.position = "right",
+    legend.direction = "vertical",
+    legend.background = element_rect(fill = "#e7e7e5"),
+    legend.key = element_rect(fill = "#e7e7e5"),
+  ) +
+  geom_text(aes(label = percent(value, 1)), 
+            vjust = -1, 
+            size = 3.5) +
+  labs(x = "",
+       y = "",
+       title = "Place of delivery: Health facility", # input
+       caption = "Sources:\n2022 DHS Key Indicator Report;\nhttps://www.statcompiler.com") #input 
 
-subset_dhs_data2 <- function(df, disaggregate = "Total", geography = "Mozambique") {
-  
-  df1 <- df |> 
-    filter(group %in% disaggregate)
-  
-  if (geography == "All") df1
-  else df1 |> filter(country %in% geography)
-  
-  # if (missing(geography)) df1 |> filter(country == "Mozambique")
 
-}
+# SANDBOX -----------------------------------------------------------------
 
 
+test_levels <- unique(dhs_dfs$indicator)
+
+
+# WRITE TO DISK -----------------------------------------------------------
 
 
 write_csv(df_all, file = "Dataout/dhs_kir.csv")
 
 saveRDS(df_all, "Dataout/dhs_kir.rds")
+
