@@ -177,7 +177,53 @@ barchart_vertical_1yr <- function(df, yr_survey, var_indicator, disag, tx_title,
       axis.text.x = element_text(size = 10, vjust = 0, hjust = .5),
       axis.text.y = element_text(size = 10, vjust = .5, hjust = 1),
       plot.title = element_text(
-        size = 15, 
+        size = 11, 
+        hjust = 0,
+        vjust = 0),
+      plot.subtitle = element_text(
+        face = "italic", 
+        size = 7, 
+        vjust = 6, 
+        color = "grey30"),
+      plot.caption = element_text(
+        size = 9,
+        color = "grey50"),
+      legend.position = "none",
+      legend.direction = "vertical",
+      legend.title = element_blank()
+    ) +
+    geom_text(aes(label = percent(value, 1)), 
+              hjust = 1.5, 
+              size = 3.5,
+              colour = "white") +
+    labs(x = "",
+         y = "",
+         title = tx_title,
+         caption = tx_caption)
+}
+
+
+barchart_vertical_1yr_2 <- function(df, yr_survey, var_indicator, disag, tx_title, tx_caption) {
+  df |> 
+    filter(country == "Mozambique",
+           survey == yr_survey,
+           indicator == var_indicator,
+           group == disag) |>
+    ggplot(aes(x = factor(characteristic, levels = c('Niassa', 'Cabo Delgado', 'Nampula', 'Zambézia', 'Tete', 'Manica', 'Sofala', 'Inhambane', 'Gaza', 'Maputo Provincia', 'Maputo Cidade')), 
+               y = value, 
+               fill = value)) +
+    geom_col(width = 0.75) +
+    coord_flip() +
+    scale_y_continuous(labels = percent) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    theme(
+      plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+      panel.spacing = unit(.75, "cm"),
+      panel.grid.major.y = element_blank(),
+      axis.text.x = element_text(size = 10, vjust = 0, hjust = .5),
+      axis.text.y = element_text(size = 10, vjust = .5, hjust = 1),
+      plot.title = element_text(
+        size = 14,
         hjust = 0,
         vjust = 1,
         color = "grey30"),
@@ -203,13 +249,15 @@ barchart_vertical_1yr <- function(df, yr_survey, var_indicator, disag, tx_title,
          caption = tx_caption)
 }
 
-
 # FETCH & MUNGE DATA ------------------------------------------------------
 
 
 dhs_dfs <- map(sheets, .f = \(x) read_sheet(gs_id, sheet = x)) |> 
   list_rbind() |> 
   tidy_dhs_data()
+
+dhs_dfs_moz <- dhs_dfs %>% 
+  filter(country == "Mozambique")
 
 
 # ANALYZE INDICATOR DATA --------------------------------------------------
@@ -222,7 +270,219 @@ dhs_dfs |>
                         tx_title = "Women with any anemia",
                         tx_caption = "Source: 2022 DHS Key Indicator Report")
 
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Wealth quintile",
+                        tx_title = "Knowledge about HIV/AIDS prevention (Females)",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
 
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Wealth quintile",
+                        tx_title = "Knowledge about HIV/AIDS prevention (Females)",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+
+
+
+
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Has been pregnant",
+                        disag = "Provinces",
+                        tx_title = "Knowledge about HIV/AIDS prevention (Females)",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+# HIV Prevention by Education ---------------------------------------------
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Education",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Males",
+                        disag = "Education",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+
+# HIV Prevention by Wealth Quintile ---------------------------------------------
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Wealth quintile",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+dhs_dfs |> 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Males",
+                        disag = "Wealth quintile",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+
+# HIV Prevention by Age ---------------------------------------------
+
+dhs_dfs |> 
+  filter(indicator == "Knowledge about HIV/AIDS prevention - Females",
+         group == "Age",
+         characteristic %in% c("15–17", "18–19", "20–22", "23–24")) %>% 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Age",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+dhs_dfs |> 
+  filter(indicator == "Knowledge about HIV/AIDS prevention - Males",
+         group == "Age",
+         characteristic %in% c("15–17", "18–19", "20–22", "23–24")) %>% 
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Males",
+                        disag = "Age",
+                        tx_title = "",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+
+
+
+test <- dhs_dfs |> 
+  filter(indicator == "Knowledge about HIV/AIDS prevention - Females",
+         group == "Age",
+         characteristic %in% c("15–17", "18–19", "20–22", "23–24"))
+
+dhs_dfs |> 
+  filter(indicator == "Knowledge about HIV/AIDS prevention - Females",
+         group == "Age",
+         characteristic %in% c("15–17", "18–19", "20–22", "23–24"))
+
+
+
+
+
+
+p <- dhs_dfs |> 
+  filter(country == "Mozambique",
+         survey == "2022 DHS",
+         indicator %in% c("Knowledge about HIV/AIDS prevention - Females", "Knowledge about HIV/AIDS prevention - Males"),
+         group == "Age",
+         characteristic %in% c("15–17", "18–19", "20–22", "23–24")) |>
+  mutate(sex = case_when(str_detect(indicator, "Females") ~ "Female",
+                         str_detect(indicator, "Males") ~ "Male"),
+         indicator = "Knowledge about HIV/AIDS prevention")
+
+p %>% 
+  ggplot(aes(x = characteristic, y = value)) +
+  geom_line() +
+  si_style_ygrid()
+  
+  
+  ggplot(aes(x = fct_reorder(characteristic, value), 
+             y = value, 
+             fill = value)) +
+  geom_col(width = 0.75) +
+  coord_flip() +
+  scale_y_continuous(labels = percent) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme(
+    plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
+    panel.spacing = unit(.75, "cm"),
+    panel.grid.major.y = element_blank(),
+    axis.text.x = element_text(size = 10, vjust = 0, hjust = .5),
+    axis.text.y = element_text(size = 10, vjust = .5, hjust = 1),
+    plot.title = element_text(
+      size = 14, 
+      hjust = 0,
+      vjust = 1,
+      color = "grey30"),
+    plot.subtitle = element_text(
+      face = "italic", 
+      size = 7, 
+      vjust = 6, 
+      color = "grey30"),
+    plot.caption = element_text(
+      size = 9,
+      color = "grey50"),
+    legend.position = "none",
+    legend.direction = "vertical",
+    legend.title = element_blank()
+  ) +
+  geom_text(aes(label = percent(value, 1)), 
+            hjust = 1.5, 
+            size = 3.5,
+            colour = "white") +
+  labs(x = "",
+       y = "",
+       title = tx_title,
+       caption = tx_caption)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  barchart_vertical_1yr(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Females",
+                        disag = "Age",
+                        tx_title = "Knowledge about HIV/AIDS prevention (Females)",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+dhs_dfs |> 
+
+  barchart_vertical_1yr_2(yr_survey = "2022 DHS",
+                        var_indicator = "Knowledge about HIV/AIDS prevention - Males",
+                        disag = "Age",
+                        tx_title = "Knowledge about HIV/AIDS prevention (Males)",
+                        tx_caption = "Source: 2022 DHS Key Indicator Report")
+
+
+dhs_dfs_moz %>% 
+  distinct(area, indicator) %>% 
+  print(n = 100)
+
+  
 dhs_dfs |> 
   filter(country == "Mozambique", 
          indicator == "Place of delivery: Health facility", # input
@@ -283,6 +543,11 @@ test_levels <- unique(dhs_dfs$indicator)
 
 
 write_csv(df_all, file = "Dataout/dhs_kir.csv")
+
+
+write_tsv(dhs_dfs_moz, 
+          na = "",
+          file = "Dataout/dhs_kir_moz.txt")
 
 saveRDS(df_all, "Dataout/dhs_kir.rds")
 
