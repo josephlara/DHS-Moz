@@ -81,9 +81,10 @@ data <- dhs_data(indicatorIds = indicator,
   select(CountryName, SurveyType, SurveyYear, Indicator, Value, CIHigh, CILow) %>% 
   clean_names()
 
-indicator_definition <- indicators[grepl(indicator, indicators$IndicatorId), ]
-indicator_definition_value <- unique(indicator_definition$Definition)
-indicator_label_value <- unique(indicator_definition$Label)
+
+indicator_label <- filter(indicators, IndicatorId == indicator)$Label
+indicator_definition <- filter(indicators, IndicatorId == indicator)$Definition
+
 
 ggplot(data, aes(survey_year, value)) +
   geom_line(size = 1, alpha = .75) +
@@ -105,8 +106,8 @@ ggplot(data, aes(survey_year, value)) +
   scale_x_continuous(breaks = c(1980:2022)) +
   labs(x = "",
        y = "",
-       title = indicator_label_value,
-       subtitle = indicator_definition_value,
+       title = indicator_label,
+       subtitle = indicator_definition,
        caption = "Source: https://www.statcompiler.com/")
 
 
