@@ -157,7 +157,7 @@ plot_nat_mult_trend <- function(indicators, type = "Percent", title, subtitle) {
   
   p <- df %>% 
     ggplot(aes(survey_year, value, color = indicator)) +
-    geom_line(size = 1, alpha = .75) +
+    geom_line(linewidth = 1, alpha = .75) +
     si_style_ygrid() +
     theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
           plot.title = element_text(size = 16, vjust = 4),
