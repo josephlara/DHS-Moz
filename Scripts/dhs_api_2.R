@@ -29,19 +29,18 @@ load_secrets()
 tags <- dhs_tags() |> arrange(TagID)
 indicators <- dhs_indicators()
 
-indicators[1,]
-tags[grepl("Stunting", indicators$Definition), ]
-tags[grepl("Malaria", tags$TagName), ]
+# indicators[1,]
+# tags[grepl("Stunting", indicators$Definition), ]
+# tags[grepl("Malaria", tags$TagName), ]
+# 
+# indicator_focus <- indicators %>% 
+#   select(TagIds, Label, IndicatorId) %>% 
+#   filter(TagIds == 0)
 
-indicator_focus <- indicators %>% 
-  select(TagIds, Label, IndicatorId) %>% 
-  filter(TagIds == 0)
 
-
-
-data <- dhs_data(indicatorIds = "CN_NUTS_C_HA2", countryIds = "MZ", breakdown = "subnational", surveyYearStart = 1997)
-
-data <- dhs_data(tagIds = 36,countryIds = c("CD","TZ"),breakdown="subnational",surveyYearStart = 2010)
+# data <- dhs_data(indicatorIds = "CN_NUTS_C_HA2", countryIds = "MZ", breakdown = "subnational", surveyYearStart = 1997)
+# 
+# data <- dhs_data(tagIds = 36,countryIds = c("CD","TZ"),breakdown="subnational",surveyYearStart = 2010)
 
 
 # FUNCTIONS ---------------------------------------------------------------
