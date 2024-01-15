@@ -197,8 +197,8 @@ plot_nat_trend <- function(indicator, color_hex, type = "Percent", c_interval = 
   p <- p +
     labs(x = "",
          y = "",
-         title = indicator_label,
-         subtitle = str_wrap(indicator_definition, width = 115),
+         title = str_wrap(indicator_label, width = 50),
+         subtitle = str_wrap(indicator_definition, width = 130),
          caption = "Source: https://www.statcompiler.com/")
 
   return(p)
@@ -286,8 +286,8 @@ plot_nat_disag <- function(indicator, survey_year, breakdown, palette = "rocket"
   p <- p +
     labs(x = "",
          y = "",
-         title = indicator_label,
-         subtitle = str_wrap(indicator_definition, width = 115),
+         title = str_wrap(indicator_label, width = 50),
+         subtitle = str_wrap(indicator_definition, width = 130),
          caption = "Source: https://www.statcompiler.com/")
   
   return(p)
@@ -379,7 +379,7 @@ df_geo_shp <- st_as_sf(df_geo,
 |> 
   select(RegionID, Coordinates)
 
-df <- dhs_data(indicatorIds = "FP_CUSM_W_ANY",
+df <- dhs_data(indicatorIds = "CM_ECMT_C_CMR",
                countryIds = c("MZ"),
                surveyYear	= 2011,
                breakdown = "subnational") |> 
@@ -400,11 +400,19 @@ ggplot(data = df_map,
 
 
 
+# HELP IN GETTING IndicatorIDs --------------------------------------------
+
+df <- dhs_data(tagIds = 32)
+
+unique(df$Indicator)
 
 # plot_nat_trend
-df <- dhs_data(indicatorIds = "FP_CUSM_W_TRA",
+df <- dhs_data(indicatorIds = "CH_VACC_C_NON",
                countryIds = c("MZ"),
                surveyYearStart = 1997) |> 
-  filter(IsPreferred == 1) |> 
-  select(CountryName, SurveyType, SurveyYear, Indicator, Value, CIHigh, CILow) 
+  filter(IsPreferred == 1) |>
+  select(CountryName, SurveyType, SurveyYear, Indicator, Value, CIHigh, CILow)
+
+df
+unique(df$Indicator)
 
