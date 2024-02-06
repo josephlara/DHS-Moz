@@ -28,6 +28,7 @@ load_secrets()
 
 tags <- dhs_tags() |> arrange(TagID)
 indicators <- dhs_indicators()
+# https://docs.google.com/spreadsheets/d/1N5gLR_rIaDZIwTL2aDGzIyyljGY3-YcxV4xbiRDGhSo/edit#gid=0   indicatorid mapping
 
 # indicators[1,]
 # tags[grepl("Stunting", indicators$Definition), ]
@@ -357,9 +358,6 @@ plot_nat_disag(indicator = "FP_CUSM_W_ANY",
                palette = "plasma",
                reverse_ord = FALSE, 
                type = "Percent")
-
-
-
 
 
 # MAPPING -----------------------------------------------------------------

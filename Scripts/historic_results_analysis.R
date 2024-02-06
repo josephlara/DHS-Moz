@@ -1440,17 +1440,17 @@ df_fp_demand_res <- df_fp_summary %>%
 
 df_fp_demand_res <- df_fp_summary %>% 
   filter(indicator == "Total Demand",
-         characteristic %in% c('Urban', 'Rural'))
+         characteristic %in% c('Nampula'))
 
 df_fp_summary %>% 
   filter(indicator != "Total Demand",
-         characteristic == "Total") %>% 
+         characteristic == "Nampula") %>% 
   filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
   ggplot(aes(year, value, fill = factor(indicator, levels = c('Unmet Need', 'Currently using traditional methods', 'Current using modern methods')))) +
   geom_col(position = "stack") +
   geom_point(aes(year, value),
              size = 0, alpha = 0,
-             data = df_fp_demand) +
+             data = df_fp_demand_res) +
   si_style_ygrid() +
   theme(plot.background = element_rect(fill = "#e7e7e5", colour = "#e7e7e5"),
         plot.title = element_text(size = 16, vjust = 4),
@@ -1465,19 +1465,19 @@ df_fp_summary %>%
   # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .6)) +
+  # geom_text(aes(label = scales::percent(value, 1)),
+  #           colour = "white",
+  #           size = 3.5,
+  #           vjust = 1,
+  #           hjust = .5,
+  #           nudge_y = 0,
+  #           nudge_x = 0) +
   geom_text(aes(label = scales::percent(value, 1)),
-            colour = "white",
-            size = 3.5,
-            vjust = 1,
-            hjust = .5,
-            nudge_y = 0,
-            nudge_x = 0) +
-  geom_text(aes(label = scales::percent(value, 1)),
-            data = df_fp_demand %>% filter(year %in% c(1997, 2003, 2011, 2022)),
+            data = df_fp_demand_res %>% filter(year %in% c(1997, 2003, 2011, 2022)),
             size = 3.5,
             vjust = -.5,
             hjust = .5,
-            nudge_y = 0, 
+            nudge_y = 0,
             nudge_x = 0) +
   labs(x = "",
        y = "",

@@ -64,11 +64,11 @@ rm(df, df2, df_moz)
 # province definition ----------------------------------------------------------------
 
 
-focus_province <-  c("Sofala")
+focus_province <-  c("Nampula")
 
 cols <- c("Niassa" = "grey70",
           "Cabo Delgado" = "grey70",
-          "Nampula" = "grey70",
+          "Nampula" = "#ba0c2f",
           "Zambézia" = "grey70",
           "Tete" = "grey70",
           "Manica" = "grey70",
@@ -81,7 +81,7 @@ cols <- c("Niassa" = "grey70",
 
 # FP ------------------------------------------------------
 
-focus_indicator <- "Married women currently using any method of contraception"
+focus_indicator <- "Children with ARI for whom advice or treatment was sought"
 
 p1 <- df_moz_2022 %>% 
   filter(indicator == focus_indicator) %>% 
@@ -106,9 +106,9 @@ p1 <- df_moz_2022 %>%
   scale_fill_manual(values = cols) +
   labs(x = NULL,
        y = NULL,
-       title = "Current use of anticontraceptive methods",
-       subtitle = "Percentage distribution among woment currently married or in union and among sexually active women age")
+       title = "Children with fever for whom advice or treatment was sought")
 
+p1
 
 # Adolescent Preg ---------------------------------------------------------
 
@@ -203,6 +203,7 @@ p4 <- df_moz_2022 %>%
        title = "Postnatal checkup within 2 days",
        subtitle = "Percent of newborn's first postnatal checkup in the first two days after birth")
 
+p4
 
 # Malaria Prevalence ------------------------------------------------------
 
