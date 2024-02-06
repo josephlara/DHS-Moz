@@ -136,7 +136,7 @@ tbl_nat_disagg <- function(df, indicator, survey_year, breakdown, type) {
     gt() %>% 
     fmt_percent(columns = Value, 
                 decimals = 0) %>%   
-    cols_hide(columns = c("CountryName", "Indicator", "CharacteristicCategory")) %>% 
+    cols_hide(columns = c("CountryName", "Indicator", "CharacteristicCategory", "CharacteristicId")) %>% 
     cols_label(CharacteristicLabel = "Region", #change this to breakdown
                SurveyYear = "Year", # to survey_year
                SurveyType = "Survey Type", 
@@ -178,7 +178,10 @@ grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Re
 
 
 
-#GT table
+#GT table -
+  #add year into title rather than a column
+  #add NA for CIs
+  # source note at bottom of table and plot
 df <- grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region") 
 
 grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region") %>% 
@@ -188,66 +191,61 @@ grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Re
 
 # GIS MAPPING ---------------------------------------------------------------
 
+#ask Joe about levels for mapping params
+  # is region the lowest level we'll look to
+  # map only works with breakdown = Region; return error to user
 
-# shape files ----------------------------------------------------------
+map_nat_disagg <- function(df, cntry)
 
-library(gagglr)
-
-shpdata <- glamr::si_path("path_vector")
-
-
-# Load the shapefiles to grab boundaries from below
-spdf_pepfar <- get_vcpolygons(path = shpdata, name = "VcPepfarPolygons.shp")
 cntry <- "Mozambique"
 
-adm0 <- gisr::get_admin0(cntry)
-adm1 <- gisr::get_admin1(cntry)
+spdf <- gisr::get_vcpolygons()
 
-#get country level
-cntry_lvl = 3
-spdf_cntry <- spdf_pepfar %>% 
-  extract_boundaries(country = cntry, 
-                     level = cntry_lvl)
+df_orgs <- grabr::datim_orgunits(cntry = cntry, reshape = TRUE)
 
-#get snu level
-snu_lvl = 4
-
-spdf_snu <- spdf_pepfar %>% 
-  extract_boundaries(country = cntry, 
-                     level = snu_lvl) %>% 
-  left_join(df_incidence, by = c("orgunit" = "area"))
+spdf_cntry <- df_orgs %>% 
+  filter(level == 3) %>% 
+  left_join(spdf, ., by = c("uid" = "orgunituid")) %>% 
+  filter(!is.na(orgunit))
 
 
+spdf_snu <- df_orgs %>% 
+  filter(level == 4) %>% 
+  left_join(spdf, ., by = c("uid" = "orgunituid")) %>% 
+  filter(!is.na(orgunit))
+
+df_nat <- grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region") %>% 
+  mutate(CharacteristicLabel  = case_when(CharacteristicLabel  == "Zambézia" ~ "Zambezia",
+                                          CharacteristicLabel  == "Maputo Cidade" ~ "Cidade De Maputo",
+                                          CharacteristicLabel  == "Maputo Provincia" ~ "Maputo",
+                                            TRUE ~ CharacteristicLabel ))
+
+spdf_snu_map <- spdf_snu %>% 
+  left_join(df_nat, by = c("orgunit" = "CharacteristicLabel")) %>% 
+  mutate(Value = Value / 100)
 
 
+# VIZ -------------------------------------------------------------------
 
 
-df_geo <- dhs_geometry(countryIds = "MZ",
-                       surveyYear = 2011)
+spdf_snu_map %>%
+  # filter(funding_agency == "USAID") %>% 
+  ggplot() +
+  geom_sf(data = spdf_cntry, aes(geometry = geometry), fill = "white") +
+  #geom_sf(data = adm0_mwi, aes(geometry = geometry), fill = grey10k) +
+  geom_sf(data = spdf_snu_map, aes(fill = Value), alpha = 0.8) +
+  scale_fill_si(palette = "scooters") +
+  ggplot2::geom_sf_text(data = spdf_snu_map,
+                        ggplot2::aes(label = orgunit),
+                        family = "Source Sans Pro") +
+  ggplot2::geom_sf_text(data = spdf_snu_map,
+                        nudge_y =-1,
+                        ggplot2::aes(label = scales::percent(Value)),
+                        family = "Source Sans Pro") +
+  labs(x = NULL,
+       y = NULL,
+       title = glue("{indicator_label}") %>% toupper(),
+       subtitle = glue("{indicator_definition}")) +
+  si_style_map()
 
-
-df_geo_shp <- st_as_sf(df_geo,
-                       coords = c("Coordinates")) |> 
-  select(RegionID, Coordinates)
-
-df_new <- dhs_data(indicatorIds = "FP_CUSM_W_ANY",
-                   countryIds = c("MZ"),
-                   surveyYear	= 2011,
-                   breakdown = "Region") |> 
-  filter(IsPreferred == 1) |> # in testing phase
-  select(CountryName, SurveyType, SurveyYear, Indicator, CharacteristicCategory, CharacteristicLabel, RegionId, Value, CIHigh, CILow)
-# filter(CharacteristicCategory == "all")
-
-df_new <- grab_nat_disagg(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region") %>% 
-  mutate(CharacteristicId = as.character(CharacteristicId))
-
-df_map <- df_new |> 
-  left_join(
-    df_geo,
-    by = join_by(CharacteristicId == RegionID)
-  )
-
-
-ggplot(data = df_map,
-       mapping = aes(fill = Value))
 
