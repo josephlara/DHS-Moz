@@ -21,6 +21,8 @@ load_secrets()
 #NOTE from KS: these indicators arent working - only able to test with FP_CUSM_W_ANY
 indicator_list <- c("CM_ECMT_C_U5M", "CM_ECMT_C_NNR", "CM_ECMT_C_IMR")
 breakdown <- "Region"
+tags <- rdhs::dhs_tags() |> arrange(TagID)
+indicators <- dhs_indicators()
 
 
 # GLOBAL FUNCTIONS -----------------------------------------------------------------------
@@ -189,6 +191,10 @@ tbl_nat_disagg <- function(df, indicator, survey_year, breakdown, type) {
 
 map_nat_disagg <- function(cntry, indicator, survey_year, breakdown = "Region") {
   
+  # fetch plot label and subtitle text values from "indicators" object
+  indicator_label <-  dplyr::filter(indicators, IndicatorId == indicator)$Label
+  indicator_definition <-  dplyr::filter(indicators, IndicatorId == indicator)$Definition
+  
   if (breakdown == "Region") {
     
     spdf <- gisr::get_vcpolygons()
@@ -275,7 +281,7 @@ dhs_wrapper(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region
             value_type = "Percent",
             output_type = "Table") # change this to Plot or Table
 
-dhs_wrapper(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "District",
+dhs_wrapper(indicator = "FP_CUSM_W_ANY", survey_year = 2011, breakdown = "Region",
             value_type = "Percent",
             output_type = "Map")
 
