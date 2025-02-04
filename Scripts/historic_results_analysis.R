@@ -1440,11 +1440,11 @@ df_fp_demand_res <- df_fp_summary %>%
 
 df_fp_demand_res <- df_fp_summary %>% 
   filter(indicator == "Total Demand",
-         characteristic %in% c('Nampula'))
+         characteristic %in% c('Tete'))
 
 df_fp_summary %>% 
   filter(indicator != "Total Demand",
-         characteristic == "Nampula") %>% 
+         characteristic == "Tete") %>% 
   filter(year %in% c(1997, 2003, 2011, 2022)) %>% 
   ggplot(aes(year, value, fill = factor(indicator, levels = c('Unmet Need', 'Currently using traditional methods', 'Current using modern methods')))) +
   geom_col(position = "stack") +
@@ -1465,13 +1465,13 @@ df_fp_summary %>%
   # scale_x_continuous(breaks=c(1997, 2003, 2011, 2015, 2022), labels=c('DHS 1997', 'DHS 2003', 'DHS 2011', 'IMASIDA 2015', 'DHS 2022')) +
   scale_y_continuous(labels = percent,
                      limits = c(0, .6)) +
-  # geom_text(aes(label = scales::percent(value, 1)),
-  #           colour = "white",
-  #           size = 3.5,
-  #           vjust = 1,
-  #           hjust = .5,
-  #           nudge_y = 0,
-  #           nudge_x = 0) +
+  geom_text(aes(label = scales::percent(value, 1)),
+            colour = "white",
+            size = 3.5,
+            vjust = 1,
+            hjust = .5,
+            nudge_y = 0,
+            nudge_x = 0) +
   geom_text(aes(label = scales::percent(value, 1)),
             data = df_fp_demand_res %>% filter(year %in% c(1997, 2003, 2011, 2022)),
             size = 3.5,
@@ -1481,8 +1481,8 @@ df_fp_summary %>%
             nudge_x = 0) +
   labs(x = "",
        y = "",
-       title = "Trends in use, need, and demand for family planning",
-       subtitle = "Percentage among currently married women aged 15-49",
+       title = "Trends in use, need, and demand for FP",
+       subtitle = "Percentage among currently married women aged 15-49 (Tete)",
        caption = "Sources: Statcompiler & 2022 DHS Key Indicator Report, Page 17")
   
 # by Residence

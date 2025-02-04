@@ -21,19 +21,41 @@ load_secrets()
 
 # NOTE from KS: these indicators arent working - only able to test with FP_CUSM_W_ANY
 indicator_list <- c("CM_ECMT_C_U5M", "CM_ECMT_C_NNR", "CM_ECMT_C_IMR")
-breakdown <- "Region"
+# breakdown <- "Education"
 tags <- rdhs::dhs_tags() |> arrange(TagID)
 indicators <- dhs_indicators()
 
-path_polygons <- "~/My Tableau Repository/Datasources/04. GIS/USAID GIS Files/"
 
 # GLOBAL FUNCTIONS -----------------------------------------------------------------------
 
-#grab df function
-grab_nat_disagg <- function(indicator, survey_year, breakdown) {
+# wrapper function
+dhs_wrapper <- function(indicator, survey_year, breakdown, value_type, output_type) {
+  
+  if (output_type == "Plot") {
+    
+    #plot - should include year in plot
+    grab_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown) %>% 
+      plot_nat_disag(indicator = indicator, survey_year = survey_year, breakdown = breakdown,
+                     palette = "rocket", reverse_ord = FALSE, type = value_type)
+    
+  } else if (output_type == "Table") {
+    grab_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown) %>% 
+      tbl_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown,
+                     type = value_type)
+    
+  } else if (output_type == "Map") {
+    
+    map_nat_disagg(cntry = "Mozambique",
+                   indicator = indicator, survey_year = 2011, breakdown = breakdown) 
+    
+  }
+}
+
+# grab df function
+grab_nat_disagg <- function(indicator, country = "MZ", survey_year, breakdown) {
   
   df <- rdhs::dhs_data(indicatorIds = indicator,
-                       countryIds = c("MZ"),
+                       countryIds = country,
                        surveyYear	= survey_year,
                        breakdown = "all") |> 
     dplyr::filter(IsPreferred == 1) |> # in testing phase
@@ -47,7 +69,7 @@ grab_nat_disagg <- function(indicator, survey_year, breakdown) {
   
 }
 
-#plot function
+# plot function
 plot_nat_disag <- function(df, indicator, survey_year, breakdown, palette = "rocket", reverse_ord = FALSE, type = "Percent") {
   
   # prepare df for plot and define whether the values should be percent or absolute
@@ -93,7 +115,7 @@ plot_nat_disag <- function(df, indicator, survey_year, breakdown, palette = "roc
                    plot.subtitle = element_text(size = 8, vjust = 6, color = "grey40"),
                    plot.caption = element_text(face = "italic", size = 9, vjust = 1),
                    panel.spacing = unit(.75, "cm"),
-                   axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust=1),
+                   axis.text.x = element_text(size = 9, angle = 0, vjust = 1, hjust = .5),
                    legend.position = "none",
                    legend.direction = "vertical",
                    legend.title = element_blank())
@@ -134,7 +156,7 @@ plot_nat_disag <- function(df, indicator, survey_year, breakdown, palette = "roc
   
 }
 
-#gt table function - fix type param
+# gt table function - fix type param
 tbl_nat_disagg <- function(df, indicator, survey_year, breakdown, type) {
   
   # fetch plot label and subtitle text values from "indicators" object
@@ -189,8 +211,7 @@ tbl_nat_disagg <- function(df, indicator, survey_year, breakdown, type) {
   
 }
 
-# map function
-
+#map function
 map_nat_disagg <- function(cntry, indicator, survey_year, breakdown = "Region") {
   
   # fetch plot label and subtitle text values from "indicators" object
@@ -199,7 +220,7 @@ map_nat_disagg <- function(cntry, indicator, survey_year, breakdown = "Region") 
   
   if (breakdown == "Region") {
     
-    spdf <- gisr::get_vcpolygons(folderpath = path_polygons, name = "VcPepfarPolygons.shp") # UPDATE TO MAKE MORE REPRUDUCABLE
+    spdf <- gisr::get_vcpolygons(folderpath = "~/My Tableau Repository/Datasources/04. GIS/USAID GIS Files/", name = "VcPepfarPolygons.shp") # JOE SPECIFIC
     df_orgs <- grabr::datim_orgunits(cntry = cntry, reshape = TRUE)
     
     spdf_cntry <- df_orgs %>% 
@@ -252,36 +273,132 @@ map_nat_disagg <- function(cntry, indicator, survey_year, breakdown = "Region") 
   
 }
 
-
-# WRAPPER FUNCTION ----------------------------------------------------------
-
-dhs_wrapper <- function(indicator, survey_year, breakdown, value_type, output_type) {
+# grab multi-survey, multi-country function, working
+grab_trend <- function(indicator, country = c("MZ"), year_start = 1997, survey_type = c("DHS", "MIS", "AIS"), breakdown) {
   
-  if (output_type == "Plot") {
+  df <- rdhs::dhs_data(indicatorIds = indicator,
+                       countryIds = country,
+                       surveyYearStart = year_start,
+                       breakdown = "all") |>
+    dplyr::filter(IsPreferred == 1) |> 
+    dplyr::filter(SurveyType %in% survey_type) %>%  # survey_type
+    dplyr::filter(CharacteristicCategory == breakdown) %>% # breakdown
+    dplyr::mutate(CIHigh = ifelse(CIHigh == "", NA, CIHigh),
+                  CILow = ifelse(CILow == "", NA, CILow)) %>% 
+    select(CountryName, SurveyType, SurveyYear, Indicator, CharacteristicLabel, Value, CIHigh, CILow)
+  
+  
+  return(df)
+  
+}
+
+
+# plot function
+plot_nat_trend <- function(df, indicator, color_hex, type = "Percent", c_interval = TRUE) {
+  
+  # prepare df for plot and define whether the values should be percent or absolute
+  # valid type values are "Percent" and "Absolute"
+
+  if (type == "Percent") {
     
-    #plot - should include year in plot
-    grab_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown) %>% 
-      plot_nat_disag(indicator = indicator, survey_year = survey_year, breakdown = breakdown,
-                     palette = "rocket", reverse_ord = FALSE, type = value_type)
+    df <- df |> 
+      
+      dplyr::mutate(Value = ifelse(is.na(Value), NA, Value / 100),
+             CIHigh = ifelse(CIHigh == "", NA, CIHigh / 100),
+             CILow = ifelse(CILow == "", NA, CILow / 100))
     
-  } else if (output_type == "Table") {
-    grab_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown) %>% 
-      tbl_nat_disagg(indicator = indicator, survey_year = survey_year, breakdown = breakdown,
-                     type = value_type)
+  } else if (type == "Absolute") {
     
-  } else if (output_type == "Map") {
-    
-    map_nat_disagg(cntry = "Mozambique",
-                   indicator = indicator, survey_year = 2011, breakdown = breakdown) 
+    df <- df |> 
+      
+      dplyr::mutate(Value = ifelse(is.na(Value), NA, Value),
+             CIHigh = ifelse(CIHigh == "", NA, CIHigh),
+             CILow = ifelse(CILow == "", NA, CILow))
     
   }
+  
+  df <- janitor::clean_names(df)
+  
+  
+  # obtain plot label and subtitle text values from "indicators" object
+  indicator_label <- dplyr::filter(indicators, IndicatorId == indicator)$Label
+  indicator_definition <- dplyr::filter(indicators, IndicatorId == indicator)$Definition
+  
+  # plot indicator
+  p <- df |> 
+    gpplot2::ggplot(aes(survey_year, value)) +
+    gpplot2::geom_line(linewidth = 1, alpha = .75, color = color_hex) +
+    glitr::si_style_ygrid() +
+    gpplot2::theme(plot.background = element_rect(fill = "#FFFFFF", colour = "#FFFFFF"),
+                   plot.title = element_text(size = 16, vjust = 3),
+                   plot.subtitle = element_text(size = 8, vjust = 6, color = "grey40"),
+                   plot.caption = element_text(face = "italic", size = 9, vjust = 1),
+                   panel.spacing = unit(.75, "cm"),
+                   axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust=1),
+                   legend.position = "none",
+                   legend.direction = "vertical",
+                   legend.title = element_blank())
+  
+  
+  if (type == "Percent") {
+    
+    p <- p +
+      
+      geom_text(aes(label = scales::percent(value, 1)),
+                size = 3,
+                vjust = -.75,
+                hjust = .5) +
+      scale_x_continuous(breaks = c(1980:2022),
+                         expand = expansion(mult = 0.1)) + # ensures geom_text data labels are not cut off
+      scale_y_continuous(labels = percent,
+                         expand = expansion(mult = 0.1)) 
+    
+  } else if (type == "Absolute") {
+    
+    p <- p +
+      
+      geom_text(aes(label = value),
+                size = 3,
+                vjust = -.75,
+                hjust = .5) +
+      scale_x_continuous(breaks = c(1980:2022),
+                         expand = expansion(mult = 0.1)) + # ensures geom_text data labels are not cut off
+      scale_y_continuous(expand = expansion(mult = 0.1)) 
+    
+  }
+  
+  
+  if (c_interval == TRUE) {
+    
+    p <- p +
+      
+      geom_ribbon(aes(ymin = ci_low, ymax = ci_high), alpha = .1)
+    
+  } else if (c_interval == FALSE) {
+    
+    p <- p
+    
+  }
+  
+  p <- p +
+    labs(x = "",
+         y = "",
+         title = glue::glue("{indicator_label} Trend"),
+         subtitle = glue::glue("{indicator_definition}"),
+         caption = glue::glue("Source: {survey_source}
+                              https://www.statcompiler.com/"))
+  
+  return(p)
+  
 }
+
+
 
 # TEST ----------------------------------------------------------------------------------
 
 dhs_wrapper(indicator = "ML_PMAL_C_RDT", 
-            survey_year = 2022, 
-            breakdown = "Wealth quintile",
+            survey_year = 2022,
+            breakdown = "Region",
             value_type = "Percent",
             output_type = "Table") # change this to Plot or Table
 
@@ -296,3 +413,145 @@ dhs_wrapper(indicator = "ML_PMAL_C_RDT",
             breakdown = "Region",
             value_type = "Percent",
             output_type = "Plot")
+
+
+
+test_grab_trend <- grab_trend(indicator = "RH_ANCP_W_SKP",
+                              country = c("MZ"),
+                              breakdown = "Region")
+
+
+
+plot_nat_trend <- function(df, color_hex, type = "Percent", c_interval = TRUE) {
+  
+  # prepare df for plot and define whether the values should be percent or absolute
+  # valid type values are "Percent" and "Absolute"
+
+  
+  if (type == "Percent") {
+    
+    df <- df |> 
+      
+      mutate(Value = ifelse(is.na(Value), NA, Value / 100),
+             CIHigh = ifelse(CIHigh == "", NA, CIHigh / 100),
+             CILow = ifelse(CILow == "", NA, CILow / 100))
+    
+  } else if (type == "Absolute") {
+    
+    df <- df |> 
+      
+      mutate(Value = ifelse(is.na(Value), NA, Value),
+             CIHigh = ifelse(CIHigh == "", NA, CIHigh),
+             CILow = ifelse(CILow == "", NA, CILow))
+    
+  }
+  
+  df <- clean_names(df)
+  
+  
+  # obtain plot label and subtitle text values from "indicators" object
+  indicator_label <- filter(indicators, IndicatorId == indicator)$Label
+  indicator_definition <- filter(indicators, IndicatorId == indicator)$Definition
+  
+  # plot indicator
+  p <- df |> 
+    ggplot(aes(survey_year, value)) +
+    geom_line(linewidth = 1, alpha = .75, color = color_hex) +
+    si_style_ygrid() +
+    theme(plot.background = element_rect(fill = "#FFFFFF", colour = "#FFFFFF"),
+          plot.title = element_text(size = 16, vjust = 3),
+          plot.subtitle = element_text(size = 8, vjust = 6, color = "grey40"),
+          plot.caption = element_text(face = "italic", size = 9, vjust = 1),
+          panel.spacing = unit(.75, "cm"),
+          axis.text.x = element_text(size = 9, angle = 45, vjust = 1, hjust=1),
+          legend.position = "none",
+          legend.direction = "vertical",
+          legend.title = element_blank())
+  
+  
+  if (type == "Percent") {
+    
+    p <- p +
+      
+      geom_text(aes(label = scales::percent(value, 1)),
+                size = 3,
+                vjust = -.75,
+                hjust = .5) +
+      scale_x_continuous(breaks = c(1980:2022),
+                         expand = expansion(mult = 0.1)) + # ensures geom_text data labels are not cut off
+      scale_y_continuous(labels = percent,
+                         expand = expansion(mult = 0.1)) 
+    
+  } else if (type == "Absolute") {
+    
+    p <- p +
+      
+      geom_text(aes(label = value),
+                size = 3,
+                vjust = -.75,
+                hjust = .5) +
+      scale_x_continuous(breaks = c(1980:2022),
+                         expand = expansion(mult = 0.1)) + # ensures geom_text data labels are not cut off
+      scale_y_continuous(expand = expansion(mult = 0.1)) 
+    
+  }
+  
+  
+  if (c_interval == TRUE) {
+    
+    p <- p +
+      
+      geom_ribbon(aes(ymin = ci_low, ymax = ci_high), alpha = .1)
+    
+  } else if (c_interval == FALSE) {
+    
+    p <- p
+    
+  }
+  
+  p <- p +
+    labs(x = "",
+         y = "",
+         title = str_wrap(indicator_label, width = 50),
+         subtitle = str_wrap(indicator_definition, width = 130),
+         caption = "Source: https://www.statcompiler.com/")
+  
+  return(p)
+  
+}
+
+
+
+
+plot_nat_trend(df = test_grab_trend,
+               color_hex = "#8494FF",
+               type = "Absolute",
+               c_interval = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+df <- rdhs::dhs_data(indicatorIds = "FP_CUSM_W_MOD",
+                     countryIds = "MZ",
+                     surveyYearStart = 1997,
+                     breakdown = "all")
+
+
+
+
